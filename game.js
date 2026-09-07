@@ -82,12 +82,75 @@ function rankUp(){let old=profile.rank;if(profile.rp>=3000)profile.rank='Diamond
 function win(){stopTimer();busy=true;profile.wins++;profile.rp+=50;profile.coin+=100;rankUp();sound('win');show('🏆 MENANG!',`<div class="modeCard"><b>+50 Rank Point • +100 Coin</b><p>Rank sekarang: ${profile.rank} (${profile.rp} RP)</p><p>Booster tetap utuh karena kamu menang.</p><button onclick="restartGame()">▶ Main Lagi</button></div>`)}
 function lose(){stopTimer();busy=true;profile.losses++;Object.keys(tools).forEach(k=>tools[k]=0);updateUI();show('💔 KALAH','<div class="modeCard"><b>Booster habis karena kalah.</b><p>Kamu bisa mendapat alat lagi dengan coin atau Rewarded Ad.</p><button onclick="watchAd()">📺 Tonton iklan +1 alat</button><button onclick="restartGame()">🔄 Coba Lagi</button></div>')}
 window.restartGame=()=>{playerHP=100;enemyHP=100;round=1;turn='player';maxMoves=3;moves=mode==='arena'?7:3;arenaMoves=7;combo=1;score=0;busy=false;activeTool=null;freshBoard();render();hide();statusEl.textContent='🎯 Giliranmu! Geser permata untuk Match 3.';updateUI();announce('Your turn');startTimer()}
-function ctx(){if(!audioCtx){let C=window.AudioContext||window.webkitAudioContext;if(C)audioCtx=new C()}if(audioCtx?.state==='suspended')audioCtx.resume();return audioCtx}
-function unlockAudio(){try{ctx()?.resume?.()}catch(e){}}
-function tone(f,d=.08,type='sine'){if(!soundOn)return;try{let c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.value=Math.max(.001,volume/900);o.connect(g).connect(c.destination);o.start();g.exponentialRampToValueAtTime(.001,c.currentTime+d);o.stop(c.currentTime+d)}catch(e){}}
-function sound(k){if(k==='swap')tone(520,.06);else if(k==='explode'){tone(180,.12,'square');setTimeout(()=>tone(720,.09),70)}else if(k==='extra'){tone(660,.1);setTimeout(()=>tone(880,.14),90)}else if(k==='turn')tone(440,.12);else if(k==='hurt')tone(150,.1,'sawtooth');else if(k==='tool')tone(780,.12);else if(k==='win'){tone(660,.12);setTimeout(()=>tone(880,.18),100)}else tone(220,.05)}
-function announce(t){if(soundOn&&'speechSynthesis'in window){try{speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.volume=Math.min(1,volume/100);speechSynthesis.speak(u)}catch(e){}}}
-function musicStart(){if(!musicOn||musicTimer)return;let notes=[220,262,330,392];let i=0;musicTimer=setInterval(()=>{if(musicOn){let old=soundOn;soundOn=true;tone(notes[i++%notes.length],.13);soundOn=old}},850)}function musicStop(){clearInterval(musicTimer);musicTimer=null}
+function ctx(){
+  if(!audioCtx){
+    const C=window.AudioContext||window.webkitAudioContext;
+    if(C) audioCtx=new C();
+  }
+  return audioCtx;
+}
+function unlockAudio(){
+  try{
+    const c=ctx();
+    if(c&&c.state==='suspended') c.resume().catch(()=>{});
+  }catch(e){}
+}
+function playTone(f,d=.08,type='sine',channel='sound'){
+  if(channel==='sound'&&!soundOn)return;
+  if(channel==='music'&&!musicOn)return;
+  try{
+    const c=ctx();
+    if(!c)return;
+    if(c.state==='suspended'){c.resume().catch(()=>{});return;}
+    const o=c.createOscillator(),g=c.createGain();
+    o.type=type;
+    o.frequency.setValueAtTime(f,c.currentTime);
+    const base=Math.max(.0005,Math.min(.12,volume/(channel==='music'?2600:900)));
+    g.gain.setValueAtTime(base,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0005,c.currentTime+d);
+    o.connect(g);
+    g.connect(c.destination);
+    o.start(c.currentTime);
+    o.stop(c.currentTime+d+.02);
+  }catch(e){}
+}
+function tone(f,d=.08,type='sine'){playTone(f,d,type,'sound')}
+function sound(k){
+  if(k==='swap')tone(520,.055,'sine');
+  else if(k==='explode'){tone(190,.11,'square');setTimeout(()=>tone(720,.08,'triangle'),65)}
+  else if(k==='extra'){tone(660,.09,'triangle');setTimeout(()=>tone(880,.13,'triangle'),85)}
+  else if(k==='turn'){tone(440,.10,'triangle');setTimeout(()=>tone(620,.08,'triangle'),70)}
+  else if(k==='hurt')tone(150,.10,'sawtooth');
+  else if(k==='tool')tone(780,.11,'triangle');
+  else if(k==='win'){tone(660,.10,'triangle');setTimeout(()=>tone(880,.16,'triangle'),95)}
+  else tone(220,.05,'sine');
+}
+function announce(t){
+  if(!soundOn||!('speechSynthesis'in window))return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t);
+    u.lang='en-US';
+    u.rate=.92;
+    u.pitch=1;
+    u.volume=Math.min(1,Math.max(0,volume/100));
+    u.onerror=()=>{};
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function musicStart(){
+  if(!musicOn||musicTimer)return;
+  let notes=[220,262,330,392,330,262],i=0;
+  const beat=()=>{
+    if(!musicOn){musicTimer=null;return;}
+    playTone(notes[i++%notes.length],.14,'triangle','music');
+    musicTimer=setTimeout(beat,820);
+  };
+  beat();
+}
+function musicStop(){
+  if(musicTimer){clearTimeout(musicTimer);musicTimer=null}
+}
 const modal=document.getElementById('modal'),modalTitle=document.getElementById('modalTitle'),modalBody=document.getElementById('modalBody');function show(t,h){modalTitle.textContent=t;modalBody.innerHTML=h;modal.classList.remove('hidden')}function hide(){modal.classList.add('hidden')}document.getElementById('closeModal').onclick=hide;
 function openSettings(){show('⚙️ Pengaturan',`<div class="settingRow"><b>← Tombol kembali</b><button onclick="hide()">Kembali</button></div><div class="settingRow"><b>🔉 Volume</b><input id="volRange" type="range" min="0" max="100" value="${volume}"></div><div class="settingRow"><b>🎵 Musik</b><button onclick="toggleMusic()">${musicOn?'ON':'OFF'}</button></div><div class="settingRow"><b>🔊 Sound</b><button onclick="toggleSound()">${soundOn?'ON':'OFF'}</button></div>`);setTimeout(()=>{let r=document.getElementById('volRange');if(r)r.oninput=e=>{volume=+e.target.value;save()}},0)}
 window.toggleMusic=()=>{musicOn=!musicOn;musicOn?musicStart():musicStop();save();openSettings()};window.toggleSound=()=>{soundOn=!soundOn;save();openSettings()};document.getElementById('settingsBtn').onclick=openSettings;
