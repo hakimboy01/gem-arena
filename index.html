@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Gem Arena</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+<header><div class="brand">💎 GEM ARENA</div><div class="stats"><span>🪙 <b id="coins">1210</b></span><span>🏆 <b id="score">0</b></span></div></header>
+<section class="arena"><div><b id="round">ROUND 1</b><small> Match gems • kumpulkan skor</small></div><button id="sound">🔊</button></section>
+<div id="status">Pilih dua permata yang bersebelahan untuk ditukar.</div>
+<main id="board" aria-label="Papan permainan"></main>
+<footer>
+<button id="rules">📖 Rules</button><button id="shuffle">🔀 Shuffle</button><button id="shop">🛒 Shop</button>
+</footer>
+</div>
+<div id="modal" class="hidden"><div class="panel"><button id="close">✕</button><h2 id="modalTitle">Gem Arena</h2><div id="modalBody"></div></div></div>
+<script src="game.js"></script>
+</body></html>
