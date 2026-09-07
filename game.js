@@ -47,20 +47,20 @@ function spin(){
  if(balance<bet){stopAuto();showOutOfCoins();return}
  spinning=true;spinBtn.disabled=true;balance-=bet;lastWin=0;render();
  const reelsArr=[...document.querySelectorAll('.reel')];
- const interval=spinSpeed===2?38:75;
- const rounds=spinSpeed===2?8:12;
+ const interval=spinSpeed===2?55:110;
+ const rounds=spinSpeed===2?9:13;
  // Reel berhenti berurutan dari kiri ke kanan agar hasil mudah dilihat.
  reelsArr.forEach((reel,col)=>{
    let ticks=0;
    const cells=[...reel.querySelectorAll('.symbol')];
    const timer=setInterval(()=>{
      cells.forEach(x=>x.textContent=symbols[Math.floor(Math.random()*symbols.length)]);
-     if(ticks%2===0)sfx('spin');
+     if(ticks%4===0)sfx('spin');
      ticks++;
      if(ticks>=rounds+col*3){
        clearInterval(timer);
-       reel.style.transform='scale(1.03)';
-       setTimeout(()=>{reel.style.transform='';sfx('stop')},90);
+       reel.style.transform='translateY(8px)';
+       setTimeout(()=>{reel.style.transform='translateY(0)';sfx('stop')},140);
        if(col===reelsArr.length-1)setTimeout(()=>finish([...document.querySelectorAll('.symbol')]),180);
      }
    },interval);
