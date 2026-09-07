@@ -1,81 +1,13 @@
 <!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Gem Arena</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div id="app">
-  <header class="topbar">
-    <button id="backBtn" class="iconBtn" aria-label="Kembali">←</button>
-    <div class="title"><b>💎 GEM ARENA</b><small>Battle Arena</small></div>
-    <button id="settingsBtn" class="iconBtn" aria-label="Pengaturan">⚙️</button>
-  </header>
-
-  <section class="settingsLine">
-    <button id="musicQuick">🎵 Musik: ON</button>
-    <button id="soundQuick">🔊 Sound: ON</button>
-    <button id="volumeQuick">🔉 70%</button>
-  </section>
-
-  <section class="versus">
-    <div class="player">
-      <div class="avatar">🐉</div>
-      <div><b id="playerName">You</b><div class="hp"><i id="playerHp"></i></div><small id="playerHpText">100/100</small></div>
-    </div>
-    <div class="vs">
-      <b>VS</b>
-      <small id="roundText">ROUND 1</small>
-      <strong id="turnText">YOUR TURN</strong>
-    </div>
-    <div class="player right">
-      <div><b id="enemyName">Arena Rogue</b><div class="hp enemy"><i id="enemyHp"></i></div><small id="enemyHpText">100/100</small></div>
-      <div class="avatar">🧙</div>
-    </div>
-  </section>
-
-  <section class="turnPanel">
-    <div><span>🎯 Jalan</span><b id="movesText">3 / 3</b></div>
-    <div class="timer"><span>⏱️ Timer</span><b id="timerText">20</b></div>
-    <div><span>🔥 Combo</span><b id="comboText">x1</b></div>
-  </section>
-
-  <section class="goal"><b id="status">🎯 Buat Match 3 untuk menyerang!</b></section>
-
-  <main class="boardWrap">
-    <div id="board" aria-label="Board permainan Match 3"></div>
-  </main>
-
-  <section class="tools">
-    <div class="toolTitle">ALAT BANTU <small>masing-masing maksimal 2</small></div>
-    <div class="toolGrid">
-      <button class="tool" data-tool="bomb">💣<span>Bomb</span><b id="bombCount">2</b></button>
-      <button class="tool" data-tool="lightning">⚡<span>Lightning</span><b id="lightningCount">2</b></button>
-      <button class="tool" data-tool="rainbow">🌈<span>Rainbow</span><b id="rainbowCount">2</b></button>
-    </div>
-    <div class="adLine">
-      <button id="buyToolBtn">🪙 Beli alat</button>
-      <button id="adToolBtn">📺 Tonton iklan +1</button>
-    </div>
-    <small class="note">Demo web: tombol iklan memberi hadiah simulasi. SDK iklan asli dipasang saat dibuat menjadi aplikasi Android.</small>
-  </section>
-
-  <nav class="bottomNav">
-    <button id="lobbyBtn">🏠 Lobby</button>
-    <button id="modeBtn">⚔️ Mode</button>
-    <button id="profileBtn">👤 Profile</button>
-  </nav>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Gem Arena</title><link rel="stylesheet" href="style.css"></head>
+<body><div id="app">
+<header class="topbar"><button id="backBtn" class="iconBtn">←</button><div class="title"><b>💎 GEM ARENA</b><small id="modeTitle">Battle Arena • Duel</small></div><button id="settingsBtn" class="iconBtn">⚙️</button></header>
+<section class="turnPanel"><div><span>🎯 Jalan</span><b id="movesText">3 / 3</b></div><div class="timer"><span>⏱️ Timer</span><b id="timerText">20</b></div><div><span>🔥 Combo</span><b id="comboText">x1</b></div></section>
+<section class="versus"><div class="player"><div class="avatar">🐉</div><div><b id="playerName">You</b><div class="hp"><i id="playerHp"></i></div><small id="playerHpText">100/100</small></div></div><div class="vs"><b>VS</b><small id="roundText">ROUND 1</small><strong id="turnText">YOUR TURN</strong></div><div class="player right"><div><b id="enemyName">Arena Rogue</b><div class="hp enemy"><i id="enemyHp"></i></div><small id="enemyHpText">100/100</small></div><div class="avatar">🧙</div></div></section>
+<section class="goal"><b id="status">🎯 Giliranmu! Geser permata untuk membuat Match 3.</b></section>
+<main class="boardWrap"><div id="board" aria-label="Board permainan Match 3"></div></main>
+<section class="tools"><div class="toolTitle">ALAT BANTU <small>masing-masing maksimal 2</small></div><div class="toolGrid"><button class="tool" data-tool="bomb">💣<span>Bomb</span><b id="bombCount">2</b></button><button class="tool" data-tool="lightning">⚡<span>Lightning</span><b id="lightningCount">2</b></button><button class="tool" data-tool="rainbow">🌈<span>Rainbow</span><b id="rainbowCount">2</b></button></div><div class="adLine"><button id="buyToolBtn">🪙 Beli alat</button><button id="adToolBtn">📺 Tonton iklan +1</button></div><small class="note">Match 4/5/L/T memberi Extra Move. Iklan dan pembayaran di web masih simulasi.</small></section>
+<nav class="bottomNav"><button id="lobbyBtn">🏠 Lobby</button><button id="modeBtn">⚔️ Mode</button><button id="profileBtn">👤 Profile</button></nav>
 </div>
-
-<div id="modal" class="hidden">
-  <div class="modalBox">
-    <button id="closeModal" class="close">✕</button>
-    <h2 id="modalTitle">Gem Arena</h2>
-    <div id="modalBody"></div>
-  </div>
-</div>
-<script src="game.js"></script>
-</body>
-</html>
+<div id="modal" class="hidden"><div class="modalBox"><button id="closeModal" class="close">✕</button><h2 id="modalTitle">Gem Arena</h2><div id="modalBody"></div></div></div>
+<div id="toast"></div><script src="game.js"></script></body></html>
