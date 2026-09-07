@@ -165,7 +165,27 @@ function showHeroes(){show('🧙 HERO ARENA','<p>Pilih karakter original Gem Are
 const rulesBtn=document.getElementById('rules');if(rulesBtn)rulesBtn.onclick=()=>show('📖 Gem Arena Rules','<p><b>Match 3</b> untuk skor, koin, dan Energy.</p><p>💣 Match 4: Bomb • ⚡ Match 5: Lightning • 🌈 Match 6+: Rainbow.</p><p>⚡ Isi Energy sampai 100 untuk memakai Skill Hero.</p>');
 function formatLeft(ms){const h=Math.floor(ms/3600000),m=Math.ceil((ms%3600000)/60000);return h+'j '+m+'m';}
 function chestReady(){return Date.now()-lastChest>=CHEST_COOLDOWN;}
-function openChestRoom(){const ready=chedocument.getElementById('profileBtn').onclick=openProfile;document.getElementById('profileFooter').onclick=openProfile;
+function openChestRoom(){
+  const ready=chestReady();
+  if(ready){
+    show('🎁 CHEST SIAP!', '<div class="chestHero"><div class="chestIcon">🎁</div><b>Chest siap dibuka!</b><small>Dapatkan coins dan booster.</small><button onclick="claimChest()">🎁 BUKA CHEST</button></div>');
+  }else{
+    const left=Math.max(0,CHEST_COOLDOWN-(Date.now()-lastChest));
+    show('⏳ CHEST', '<div class="chestHero"><div class="chestIcon">🔒</div><b>Chest belum siap</b><small>Tunggu '+formatLeft(left)+' lagi.</small></div>');
+  }
+}
+window.claimChest=()=>{
+  if(!chestReady())return;
+  lastChest=Date.now();
+  coins+=100;
+  boosters.bomb++;
+  modal.classList.add('hidden');
+  statusEl.textContent='🎁 Chest dibuka! +100 coins dan 💣 Bomb!';
+  updateUI();
+  sound('buy');
+};
+document.getElementById('chestBtn').onclick=openChestRoom;
+document.getElementById('profileBtn').onclick=openProfile;document.getElementById('profileFooter').onclick=openProfile;
 document.getElementById('claimMission').onclick=()=>{if(mission<30||missionClaimed)return;coins+=150;missionClaimed=true;updateUI();statusEl.textContent='🎁 Daily Mission selesai! +150 coins.';sound('buy')};
 window.openMap=()=>{const unlocked=Math.min(levelId,levels.length);show('🗺️ GEM ARENA MAP','<div class="worldHeader"><b>🌍 Campaign Dunia Pertama</b><small> Selesaikan level untuk membuka arena berikutnya.</small></div><div class="mapList">'+levels.map(l=>'<div class="levelCard '+(l.id<unlocked?'unlocked':l.id===unlocked?'current unlocked':'locked')+'"><div class="levelIcon">'+(l.id<=unlocked?l.icon:'🔒')+'</div><div><b>LEVEL '+l.id+' • '+l.world+'</b><small>'+l.desc+'<br>👹 '+l.enemy+' • 🪙 '+l.reward+'</small></div><button class="levelAction" '+(l.id<=unlocked?'onclick="chooseLevel('+l.id+')"':'disabled')+'>'+((l.id===levelId)?'▶ MAIN':l.id<=unlocked?'PILIH':'🔒')+'</button></div>').join('')+'</div>')};
 window.chooseLevel=id=>{if(id>levelId)return;campaign=true;levelId=id;localStorage.setItem('gaLevel',levelId);modal.classList.add('hidden');restartBattle();statusEl.textContent='🗺️ '+currentLevel().world+' dimulai! Kalahkan '+currentLevel().enemy+'!';};
@@ -174,6 +194,13 @@ document.getElementById('modeBtn').onclick=()=>show('⚔️ PILIH MODE','<p>Pili
 window.chooseMode=id=>{campaign=false;mode=id;modal.classList.add('hidden');restartBattle();statusEl.textContent='⚔️ '+modes[id].name+' dipilih! Battle dimulai.'};
 document.getElementById('shop').onclick=()=>show('🛒 Gem Shop','<div class="shopItem">💣 Bomb <button onclick="buy(100,\'bomb\')">100 🪙</button></div><div class="shopItem">⚡ Lightning <button onclick="buy(150,\'lightning\')">150 🪙</button></div><div class="shopItem">🌈 Rainbow <button onclick="buy(250,\'rainbow\')">250 🪙</button></div>');
 function buy(n,k){if(coins<n){statusEl.textContent='🪙 Koin belum cukup.';modal.classList.add('hidden');return}coins-=n;boosters[k]++;updateUI();statusEl.textContent='🎉 '+k+' berhasil dibeli!';modal.classList.add('hidden');sound('buy')}let audioCtx;
+function unlockAudio(){
+  if(!soundOn)return;
+  try{
+    audioCtx??=new(window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended')audioCtx.resume();
+  }catch(e){}
+}
 function sound(kind){if(!soundOn)return;try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain();const map={match:[520,.09],bomb:[90,.25],lightning:[880,.2],rainbow:[660,.28],shuffle:[330,.12],buy:[740,.15]};const [freq,dur]=map[kind]||[440,.1];o.frequency.value=freq;o.type=kind==='bomb'?'sawtooth':'sine';g.gain.setValueAtTime(.08,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+dur);o.connect(g).connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur)}catch(e){}}
 // Hook monetisasi: prototype web tetap tanpa SDK iklan. Untuk Android, sambungkan tombol rewarded ke AdMob/AppLovin dan panggil reward hanya setelah callback sukses.
 document.getElementById('sound').onclick=()=>{soundOn=!soundOn;document.getElementById('sound').textContent=soundOn?'🔊':'🔇';statusEl.textContent=soundOn?'🔊 Suara aktif.':'🔇 Suara dimatikan.'};window.addEventListener('beforeunload',()=>{clearTimeout(enemyTimer);clearInterval(matchTimer)});enemyHP=(campaign?currentLevel():modes[mode]).hp;init();
