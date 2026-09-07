@@ -12,3 +12,7 @@
 
 /* Quick Match & Leaderboard */
 .matchHero{text-align:center;padding:8px}.searchOrb{font-size:60px;animation:pulseMatch 1s infinite alternate}.matchStatus{padding:12px;border-radius:14px;background:#172142;text-align:center;margin:10px 0}.matchSteps{display:grid;gap:7px;margin:12px 0}.matchStep{padding:9px;border-radius:11px;background:#172142;color:#cbd7ff}.matchStep.active{border:1px solid #5be9ff;color:#fff}.leaderTabs{display:flex;gap:7px;margin-bottom:10px}.leaderTabs button{flex:1;padding:9px}.leaderRow{display:flex;align-items:center;gap:9px;padding:10px;border-radius:12px;background:#172142;margin:6px 0;border:1px solid #344673}.leaderRow.me{border-color:#ffd34e}.leaderPos{width:28px;font-weight:900;color:#ffd34e}.leaderAvatar{font-size:24px}.leaderInfo{flex:1}.leaderInfo small{display:block;color:#aebfe8}.botTag{font-size:10px;padding:3px 6px;border-radius:8px;background:#2d3860}.onlineDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#5cff9a;margin-right:4px}@keyframes pulseMatch{from{transform:scale(.9)}to{transform:scale(1.08)}}
+/* Mobile Match-3 controls */
+#board{touch-action:none;-webkit-user-select:none;user-select:none}
+.gem{touch-action:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
+.gem:active{transform:scale(.92);filter:brightness(1.25)}
