@@ -1,0 +1,8 @@
+{
+  "appId": "com.hakimboy.junglecoinrush",
+  "appName": "Jungle Coin Rush",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}
