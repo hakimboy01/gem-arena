@@ -187,9 +187,9 @@ window.claimChest=()=>{
 document.getElementById('chestBtn').onclick=openChestRoom;
 function openProfile(){const h=hero();show('👤 PROFILE GEM PLAYER','<div class="modeCard"><b>'+playerName+'</b><small>'+currentLeague().icon+' '+currentLeague().name+' • '+rankPoints+' RP</small><p>🏆 Menang: '+wins+' • 💔 Kalah: '+losses+'</p><p>⭐ Skor tertinggi: '+highestScore+'</p><p>🧙 Hero: '+h.icon+' '+h.name+'</p><button onclick="showHeroes()">🧙 GANTI HERO</button></div>')}
 function openRank(){const l=currentLeague();show('🏆 RANK ARENA','<div class="modeCard"><b>'+l.icon+' '+l.name+'</b><small>'+rankPoints+' Rank Point</small><p>🥇 Crystal Master — 980 RP</p><p>🥈 Neon Hunter — 720 RP</p><p>🥉 Arena Rogue — 510 RP</p><p>👤 '+playerName+' — '+rankPoints+' RP</p><button onclick="enterBattle()">⚔️ MASUK BATTLE</button></div>')}
-function enterBattle(){document.getElementById('app').classList.remove('lobby-mode');document.getElementById('lobby').classList.add('hidden');modal.classList.add('hidden');restartBattle()}
+function enterBattle(){document.getElementById('app').classList.remove('lobby-mode');document.getElementById('lobby').classList.add('hidden');modal.classList.add('hidden');window.scrollTo({top:0,behavior:'instant'});restartBattle()}
 function openLobby(){document.getElementById('app').classList.add('lobby-mode');document.getElementById('lobby').classList.remove('hidden');document.getElementById('lobbyPlayerName').textContent=playerName;clearTimeout(enemyTimer)}
-window.openLobby=openLobby;
+window.openLobby=openLobby;const backLobbyBtn=document.getElementById('backLobby');if(backLobbyBtn)backLobbyBtn.onclick=openLobby;
 function openBattleModes(){show('⚔️ BATTLE ARENA','<p>Pilih mode pertandingan:</p>'+Object.entries(modes).map(([id,m])=>'<div class="modeCard"><b>⚔️ '+m.name+'</b><small>'+m.desc+' • Reward '+m.reward+' 🪙</small><button onclick="chooseMode(&quot;'+id+'&quot;)">▶ MAIN MODE INI</button></div>').join(''))}
 document.getElementById('profileBtn').onclick=openProfile;document.getElementById('profileFooter').onclick=openProfile;
 document.getElementById('claimMission').onclick=()=>{if(mission<30||missionClaimed)return;coins+=150;missionClaimed=true;updateUI();statusEl.textContent='🎁 Daily Mission selesai! +150 coins.';sound('buy')};
