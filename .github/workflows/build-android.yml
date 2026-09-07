@@ -1,32 +1,55 @@
-name: Build Android APK
+name: Build Jungle Coin Rush APK
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  build-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
       - name: Install dependencies
         run: npm install
-      - name: Create Android project if needed
+
+      - name: Add Android platform
         run: |
-          if [ ! -d android ]; then npx cap add android; fi
-      - name: Sync web game
+          if [ ! -d android ]; then
+            npx cap add android
+          fi
+
+      - name: Sync game files
         run: npx cap sync android
+
       - name: Build debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Jungle-Coin-Rush-debug
+          name: Jungle-Coin-Rush-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
