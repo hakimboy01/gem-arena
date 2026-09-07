@@ -1,6 +1,6 @@
 const symbols=['🪙','💎','🧧','🪭','🍀','🐾','🌕','🧨'];
 const reels=document.getElementById('reels'),spinBtn=document.getElementById('spin');
-let balance=250000,bet=10000,sound=true,spinning=false,lastWin=0;
+let balance=250000,bet=10000,sound=true,spinning=false,lastWin=0,spinSpeed=1,autoMode=false,autoTimer=null;
 const fmt=n=>new Intl.NumberFormat('id-ID').format(Math.floor(n));
 function save(){localStorage.setItem('jcr',JSON.stringify({balance,bet}))}
 function load(){try{const d=JSON.parse(localStorage.getItem('jcr'));if(d){balance=d.balance??balance;bet=d.bet??bet}}catch(e){}}
@@ -43,20 +43,39 @@ function modal(title,html){document.getElementById('modalTitle').textContent=tit
 function close(){document.getElementById('modal').classList.add('hidden')}
 document.getElementById('close').onclick=close;
 function spin(){
- if(spinning||balance<bet){showOutOfCoins();return}
+ if(spinning)return;
+ if(balance<bet){stopAuto();showOutOfCoins();return}
  spinning=true;spinBtn.disabled=true;balance-=bet;lastWin=0;render();
- const cells=[...document.querySelectorAll('.symbol')];let ticks=0;
- const timer=setInterval(()=>{cells.forEach(x=>x.textContent=symbols[Math.floor(Math.random()*symbols.length)]);sfx('spin');ticks++;if(ticks>=16){clearInterval(timer);finish(cells)}},75);
+ const reelsArr=[...document.querySelectorAll('.reel')];
+ const interval=spinSpeed===2?38:75;
+ const rounds=spinSpeed===2?8:12;
+ // Reel berhenti berurutan dari kiri ke kanan agar hasil mudah dilihat.
+ reelsArr.forEach((reel,col)=>{
+   let ticks=0;
+   const cells=[...reel.querySelectorAll('.symbol')];
+   const timer=setInterval(()=>{
+     cells.forEach(x=>x.textContent=symbols[Math.floor(Math.random()*symbols.length)]);
+     if(ticks%2===0)sfx('spin');
+     ticks++;
+     if(ticks>=rounds+col*3){
+       clearInterval(timer);
+       reel.style.transform='scale(1.03)';
+       setTimeout(()=>{reel.style.transform='';sfx('stop')},90);
+       if(col===reelsArr.length-1)setTimeout(()=>finish([...document.querySelectorAll('.symbol')]),180);
+     }
+   },interval);
+ });
 }
 function finish(cells){
  const rows=[0,1,2].map(r=>cells.filter(x=>+x.dataset.r===r).map(x=>x.textContent));
  let best=0,winning=[];
  rows.forEach((row,ri)=>{const counts={};row.forEach(s=>counts[s]=(counts[s]||0)+1);const max=Math.max(...Object.values(counts));if(max>=3){const sym=Object.keys(counts).find(k=>counts[k]===max);const mult=max===5?12:max===4?5:2;const w=bet*mult;if(w>best){best=w;winning=cells.filter(x=>+x.dataset.r===ri&&x.textContent===sym)}}});
  const jackpot=Math.random()<0.018;
- if(jackpot){sfx('jackpot');best=bet*30;winning=cells.filter((_,i)=>i%4===0).slice(0,5);modal('🐯 JACKPOT!', '<div class="jackpot">JUNGLE JACKPOT!</div><p>Kamu memenangkan <b>'+fmt(best)+' COIN</b></p><button id="claim">📺 TONTON IKLAN & CLAIM</button><p><small>Hadiah adalah coin virtual dalam game.</small></p>');setTimeout(()=>{document.getElementById('claim').onclick=()=>claimJackpot(best)},0)}
+ if(jackpot){stopAuto();sfx('jackpot');best=bet*30;winning=cells.filter((_,i)=>i%4===0).slice(0,5);modal('🐯 JACKPOT!', '<div class="jackpot">JUNGLE JACKPOT!</div><p>Kamu memenangkan <b>'+fmt(best)+' COIN</b></p><button id="claim">📺 TONTON IKLAN & CLAIM</button><p><small>Hadiah adalah coin virtual dalam game.</small></p>');setTimeout(()=>{document.getElementById('claim').onclick=()=>claimJackpot(best)},0)}
  else if(best){sfx('win');lastWin=best;balance+=best;winning.forEach(x=>x.classList.add('win'));setTimeout(()=>winning.forEach(x=>x.classList.remove('win')),900);beep(880,.2)}
  else modal('Belum Beruntung','<p>Coba putaran berikutnya untuk mencari kombinasi baru. 🍀</p>');
  save();render();spinning=false;spinBtn.disabled=false;
+ if(autoMode){autoTimer=setTimeout(()=>spin(),spinSpeed===2?550:950)}
 }
 async function claimJackpot(amount){
  close();
@@ -73,9 +92,12 @@ function giveReward(amount){balance+=amount;lastWin=amount;save();render();modal
 document.getElementById('spin').onclick=()=>{unlockSound();sfx('click');spin()};
 document.getElementById('minus').onclick=()=>{bet=Math.max(1000,bet-5000);render();save()};
 document.getElementById('plus').onclick=()=>{bet=Math.min(50000,bet+5000);render();save()};
-document.getElementById('max').onclick=()=>{bet=Math.min(50000,balance);render();save()};
+document.getElementById('speed').onclick=()=>{spinSpeed=spinSpeed===1?2:1;const b=document.getElementById('speed');b.innerHTML=spinSpeed===1?'⚡ 1×<br>CEPAT':'⚡ 2×<br>SUPER';sfx('click')};
+function stopAuto(){autoMode=false;if(autoTimer){clearTimeout(autoTimer);autoTimer=null}const b=document.getElementById('auto');if(b)b.innerHTML='▶ AUTO<br>OFF'}
+document.getElementById('auto').onclick=()=>{unlockSound();autoMode=!autoMode;const b=document.getElementById('auto');b.innerHTML=autoMode?'⏹ AUTO<br>ON':'▶ AUTO<br>OFF';sfx('click');if(autoMode&&!spinning)spin()};
+
 document.getElementById('how').onclick=()=>modal('Cara Main','<p>Tekan SPIN untuk memutar 5 reel. Dapatkan 3, 4, atau 5 simbol yang sama dalam satu baris untuk memperoleh coin virtual.</p><p>JACKPOT membuka tombol Claim dengan Rewarded Ad.</p>');
-function showOutOfCoins(){modal('🪙 COIN HABIS','<p>Kamu bisa kembali besok untuk bonus harian, atau memilih iklan hadiah untuk mendapatkan coin virtual tambahan.</p><button id="rewardCoins">📺 TONTON IKLAN +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=close;document.getElementById('rewardCoins').onclick=()=>showRewarded(25000,'COIN TAMBAHAN')},0)}
+function showOutOfCoins(){stopAuto();modal('🪙 COIN HABIS','<p>Kamu bisa kembali besok untuk bonus harian, atau memilih iklan hadiah untuk mendapatkan coin virtual tambahan.</p><button id="rewardCoins">📺 TONTON IKLAN +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=close;document.getElementById('rewardCoins').onclick=()=>showRewarded(25000,'COIN TAMBAHAN')},0)}
 function showRewarded(amount,label){close();if(typeof window.showRewardedAd==='function'){Promise.resolve(window.showRewardedAd()).then(()=>giveReward(amount)).catch(()=>modal('Iklan Belum Selesai','<p>Hadiah hanya diberikan setelah iklan selesai.</p>'));return}modal('📺 IKLAN HADIAH','<p>Mode web menggunakan simulasi. APK nanti akan memakai Rewarded Ads asli setelah AdMob dikonfigurasi.</p><div class="count" id="count">5</div>');let n=5,t=setInterval(()=>{n--;let e=document.getElementById('count');if(e)e.textContent=n;if(n<=0){clearInterval(t);close();giveReward(amount)}},1000)}
 document.getElementById('bonus').onclick=()=>{const key='jcrBonusDay',today=new Date().toDateString();if(localStorage.getItem(key)===today){modal('Bonus Harian','<p>Bonus hari ini sudah diambil. Kembali lagi besok! 🎁</p>');return}balance+=10000;localStorage.setItem(key,today);save();render();modal('🎁 BONUS HARIAN','<div class="jackpot">+10.000 COIN</div><p>Pilih hadiah tambahan jika ingin.</p><button id="doubleBonus">📺 TONTON IKLAN +10.000 LAGI</button>');setTimeout(()=>{const b=document.getElementById('doubleBonus');if(b)b.onclick=()=>showRewarded(10000,'BONUS 2×')},0)};
 document.getElementById('sound').onclick=()=>{sound=!sound;if(sound){unlockSound();startMusic()}else stopMusic();document.getElementById('sound').textContent=sound?'🔊 Suara':'🔇 Senyap'};
