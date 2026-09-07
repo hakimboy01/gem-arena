@@ -1,55 +1,9 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Gem Arena</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div id="app">
-  <header>
-    <div><div class="brand">💎 GEM ARENA</div><small class="tag">Match • Combo • Battle</small></div>
-    <div class="stats">
-      <span>🪙 <b id="coins">1210</b></span>
-      <span>🏆 <b id="score">0</b></span>
-    </div>
-  </header>
-
-  <section class="arena">
-    <div><b id="round">ROUND 1</b><small> Buat combo dan kumpulkan booster!</small></div>
-    <button id="sound" aria-label="Suara">🔊</button>
-  </section>
-
-  <div class="comboWrap">
-    <div class="comboTop"><span>🔥 COMBO</span><b id="comboText">x1</b></div>
-    <div class="comboBar"><i id="comboFill"></i></div>
-  </div>
-
-  <section id="boosterBar" aria-label="Booster">
-    <button class="booster" data-booster="bomb">💣 <span>Bomb</span><b id="bombCount">0</b></button>
-    <button class="booster" data-booster="lightning">⚡ <span>Lightning</span><b id="lightningCount">0</b></button>
-    <button class="booster" data-booster="rainbow">🌈 <span>Rainbow</span><b id="rainbowCount">0</b></button>
-  </section>
-
-  <div id="status">Pilih dua permata yang bersebelahan untuk ditukar.</div>
-  <main id="board" aria-label="Papan permainan"></main>
-
-  <footer>
-    <button id="rules">📖 Rules</button>
-    <button id="shuffle">🔀 Shuffle</button>
-    <button id="shop">🛒 Shop</button>
-  </footer>
-</div>
-
-<div id="fxLayer" aria-hidden="true"></div>
-<div id="modal" class="hidden">
-  <div class="panel">
-    <button id="close">✕</button>
-    <h2 id="modalTitle">Gem Arena</h2>
-    <div id="modalBody"></div>
-  </div>
-</div>
-<script src="game.js"></script>
-</body>
-</html>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Gem Arena</title><link rel="stylesheet" href="style.css"></head><body><div id="app">
+<header><button id="heroBtn" class="heroMini" aria-label="Pilih karakter">🐉</button><div><div class="brand">💎 GEM ARENA</div><small class="tag">Match • Combo • Battle</small></div><div class="stats"><span>🪙 <b id="coins">1210</b></span><span>🏆 <b id="score">0</b></span></div></header>
+<section class="arena"><div><b id="heroName">🐉 Dragon Dancer</b><small id="heroDesc">Skill: Dragon Storm</small></div><button id="sound" aria-label="Suara">🔊</button></section>
+<section class="heroPower"><div class="energyTop"><span>⚡ ENERGY</span><b id="energyText">0/100</b></div><div class="energyBar"><i id="energyFill"></i></div><button id="skillBtn" disabled>🔒 KUMPULKAN ENERGY</button></section>
+<div class="comboWrap"><div class="comboTop"><span>🔥 COMBO</span><b id="comboText">x1</b></div><div class="comboBar"><i id="comboFill"></i></div></div>
+<section id="boosterBar"><button class="booster" data-booster="bomb">💣 <span>Bomb</span><b id="bombCount">0</b></button><button class="booster" data-booster="lightning">⚡ <span>Lightning</span><b id="lightningCount">0</b></button><button class="booster" data-booster="rainbow">🌈 <span>Rainbow</span><b id="rainbowCount">0</b></button></section>
+<div id="status">Pilih dua permata yang bersebelahan untuk ditukar.</div><main id="board" aria-label="Papan permainan"></main>
+<footer><button id="rules">📖 Rules</button><button id="shuffle">🔀 Shuffle</button><button id="shop">🛒 Shop</button></footer></div>
+<div id="fxLayer"></div><div id="modal" class="hidden"><div class="panel"><button id="close">✕</button><h2 id="modalTitle">Gem Arena</h2><div id="modalBody"></div></div></div><script src="game.js"></script></body></html>
