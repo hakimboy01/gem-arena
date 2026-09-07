@@ -11,7 +11,7 @@ function modal(title,html){document.getElementById('modalTitle').textContent=tit
 function close(){document.getElementById('modal').classList.add('hidden')}
 document.getElementById('close').onclick=close;
 function spin(){
- if(spinning||balance<bet){modal('COIN TIDAK CUKUP','<p>Kumpulkan bonus harian lalu coba lagi.</p>');return}
+ if(spinning||balance<bet){showOutOfCoins();return}
  spinning=true;spinBtn.disabled=true;balance-=bet;lastWin=0;render();
  const cells=[...document.querySelectorAll('.symbol')];let ticks=0;
  const timer=setInterval(()=>{cells.forEach(x=>x.textContent=symbols[Math.floor(Math.random()*symbols.length)]);beep(180+ticks*8,.03);ticks++;if(ticks>=16){clearInterval(timer);finish(cells)}},75);
@@ -43,7 +43,9 @@ document.getElementById('minus').onclick=()=>{bet=Math.max(1000,bet-5000);render
 document.getElementById('plus').onclick=()=>{bet=Math.min(50000,bet+5000);render();save()};
 document.getElementById('max').onclick=()=>{bet=Math.min(50000,balance);render();save()};
 document.getElementById('how').onclick=()=>modal('Cara Main','<p>Tekan SPIN untuk memutar 5 reel. Dapatkan 3, 4, atau 5 simbol yang sama dalam satu baris untuk memperoleh coin virtual.</p><p>JACKPOT membuka tombol Claim dengan Rewarded Ad.</p>');
-document.getElementById('bonus').onclick=()=>{const key='jcrBonusDay',today=new Date().toDateString();if(localStorage.getItem(key)===today){modal('Bonus Harian','<p>Bonus hari ini sudah diambil. Kembali lagi besok! 🎁</p>');return}balance+=25000;localStorage.setItem(key,today);save();render();modal('🎁 BONUS HARIAN','<div class="jackpot">+25.000 COIN</div><p>Bonus virtual sudah ditambahkan.</p>')};
+function showOutOfCoins(){modal('🪙 COIN HABIS','<p>Kamu bisa kembali besok untuk bonus harian, atau memilih iklan hadiah untuk mendapatkan coin virtual tambahan.</p><button id="rewardCoins">📺 TONTON IKLAN +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=close;document.getElementById('rewardCoins').onclick=()=>showRewarded(25000,'COIN TAMBAHAN')},0)}
+function showRewarded(amount,label){close();if(typeof window.showRewardedAd==='function'){Promise.resolve(window.showRewardedAd()).then(()=>giveReward(amount)).catch(()=>modal('Iklan Belum Selesai','<p>Hadiah hanya diberikan setelah iklan selesai.</p>'));return}modal('📺 IKLAN HADIAH','<p>Mode web menggunakan simulasi. APK nanti akan memakai Rewarded Ads asli setelah AdMob dikonfigurasi.</p><div class="count" id="count">5</div>');let n=5,t=setInterval(()=>{n--;let e=document.getElementById('count');if(e)e.textContent=n;if(n<=0){clearInterval(t);close();giveReward(amount)}},1000)}
+document.getElementById('bonus').onclick=()=>{const key='jcrBonusDay',today=new Date().toDateString();if(localStorage.getItem(key)===today){modal('Bonus Harian','<p>Bonus hari ini sudah diambil. Kembali lagi besok! 🎁</p>');return}balance+=10000;localStorage.setItem(key,today);save();render();modal('🎁 BONUS HARIAN','<div class="jackpot">+10.000 COIN</div><p>Pilih hadiah tambahan jika ingin.</p><button id="doubleBonus">📺 TONTON IKLAN +10.000 LAGI</button>');setTimeout(()=>{const b=document.getElementById('doubleBonus');if(b)b.onclick=()=>showRewarded(10000,'BONUS 2×')},0)};
 document.getElementById('sound').onclick=()=>{sound=!sound;document.getElementById('sound').textContent=sound?'🔊 Suara':'🔇 Senyap'};
 document.getElementById('settings').onclick=()=>modal('Pengaturan','<p>Versi awal Jungle Coin Rush.</p><p>Monetisasi produksi memerlukan aplikasi Android, akun AdMob, dan Rewarded Ad SDK asli.</p>');
 load();makeGrid();render();
