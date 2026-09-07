@@ -6,6 +6,8 @@ let soundOn=localStorage.getItem('gaSound')!=='0', musicOn=localStorage.getItem(
 let tools=JSON.parse(localStorage.getItem('gaTools')||'{"bomb":2,"lightning":2,"rainbow":2}');
 let profile=JSON.parse(localStorage.getItem('gaProfile')||'{"rank":"Bronze","rp":0,"coin":1479,"wins":0,"losses":0,"emotes":["👋","😂"],"fish":0}');
 let noAdsUntil=+(localStorage.getItem('gaNoAdsUntil')||0), audioCtx=null, musicTimer=null, touchStart=null;
+// Tempo permainan dibuat lebih santai agar board mudah dibaca di HP.
+const CLEAR_DELAY=520, DROP_DELAY=680, CASCADE_DELAY=760;
 function save(){localStorage.setItem('gaTools',JSON.stringify(tools));localStorage.setItem('gaProfile',JSON.stringify(profile));localStorage.setItem('gaSound',soundOn?'1':'0');localStorage.setItem('gaMusic',musicOn?'1':'0');localStorage.setItem('gaVolume',volume);localStorage.setItem('gaNoAdsUntil',noAdsUntil)}
 function rnd(){return Math.floor(Math.random()*types.length)}
 function adjacent(a,b){let ar=~~(a/N),ac=a%N,br=~~(b/N),bc=b%N;return Math.abs(ar-br)+Math.abs(ac-bc)===1}
@@ -18,22 +20,53 @@ function findMatchInfo(arr=cells){
 }
 function freshBoard(){cells=Array.from({length:N*N},rnd);while(findMatchInfo(cells).hit.size)cells=Array.from({length:N*N},rnd)}
 function render(drop=false){board.innerHTML='';cells.forEach((t,i)=>{let b=document.createElement('button');b.className='gem'+(drop?' drop':'');b.textContent=types[t];b.dataset.i=i;b.addEventListener('click',()=>pick(i,b));board.appendChild(b)})}
-function pick(i,el){if(busy||turn!=='player')return;if(activeTool){useTool(i);return}if(selected===null){selected=i;el.classList.add('selected');return}if(selected===i){selected=null;el.classList.remove('selected');return}if(!adjacent(selected,i)){document.querySelector(`.gem[data-i="${selected}"]`)?.classList.remove('selected');selected=i;el.classList.add('selected');return}doSwap(selected,i)}
-function doSwap(a,b){if(busy)return;busy=true;stopTimer();selected=null;[cells[a],cells[b]]=[cells[b],cells[a]];sound('swap');render();let info=findMatchInfo();if(!info.hit.size){setTimeout(()=>{[cells[a],cells[b]]=[cells[b],cells[a]];render();busy=false;statusEl.textContent='❌ Geseran harus menghasilkan Match 3.';sound('bad');startTimer()},180);return}setTimeout(()=>resolveMatches(info,true),120)}
+function pick(i,el){unlockAudio();if(busy||turn!=='player')return;if(activeTool){useTool(i);return}if(selected===null){selected=i;el.classList.add('selected');return}if(selected===i){selected=null;el.classList.remove('selected');return}if(!adjacent(selected,i)){document.querySelector(`.gem[data-i="${selected}"]`)?.classList.remove('selected');selected=i;el.classList.add('selected');return}doSwap(selected,i)}
+function doSwap(a,b){if(busy)return;unlockAudio();busy=true;stopTimer();selected=null;[cells[a],cells[b]]=[cells[b],cells[a]];sound('swap');render();let info=findMatchInfo();if(!info.hit.size){setTimeout(()=>{[cells[a],cells[b]]=[cells[b],cells[a]];render();busy=false;statusEl.textContent='❌ Geseran harus menghasilkan Match 3.';sound('bad');startTimer()},180);return}setTimeout(()=>resolveMatches(info,true),120)}
 function resolveMatches(info,fromMove){
- const hit=info.hit; let extra=info.max>=4||info.intersection.length>0;
- if(info.max>=5)extra=true;
+ const hit=info.hit;
+ // Match 4, 5, dan bentuk L/T memberi Extra Move: jalan tidak dikurangi.
+ const extra=info.max>=4||info.intersection.length>0;
  hit.forEach(i=>document.querySelector(`.gem[data-i="${i}"]`)?.classList.add('pop'));
- sound('explode'); const dmg=Math.min(32,hit.size*3+combo*2);score+=hit.size*10;
- setTimeout(()=>{hit.forEach(i=>cells[i]=null);collapse();damageEnemy(dmg);combo++;render(true);
-   const cascade=findMatchInfo();
-   if(cascade.hit.size){setTimeout(()=>resolveMatches(cascade,false),260);return}
-   if(fromMove){if(extra){moves=Math.min(maxMoves,moves);statusEl.textContent=`🌟 EXTRA MOVE! Match ${info.max>=5?'5':info.intersection.length?'L/T':'4'} memberi jalan tambahan!`;toast('🌟 EXTRA MOVE!');sound('extra')}else moves--;}
-   updateUI();
-   if(enemyHP<=0)return win();
-   busy=false;
-   if(moves<=0)endTurn();else{statusEl.textContent=extra?'🌟 Extra Move! Kamu tetap bermain.':'✨ Match berhasil! Geser lagi.';startTimer()}
- },330)
+ sound('explode');
+ const dmg=Math.min(32,hit.size*3+combo*2);
+ score+=hit.size*10;
+ statusEl.textContent=`💥 ${hit.size} gem cocok! Board sedang runtuh...`;
+ // Beri waktu lebih lama supaya pemain bisa melihat gem yang hancur.
+ setTimeout(()=>{
+   hit.forEach(i=>cells[i]=null);
+   collapse();
+   damageEnemy(dmg);
+   combo++;
+   render(true);
+   statusEl.textContent='⬇️ Permata jatuh...';
+   // Tunggu animasi jatuh selesai sebelum mencari cascade berikutnya.
+   setTimeout(()=>{
+     const cascade=findMatchInfo();
+     if(cascade.hit.size){
+       statusEl.textContent='✨ Cascade! Kombinasi berikutnya...';
+       setTimeout(()=>resolveMatches(cascade,false),CASCADE_DELAY);
+       return;
+     }
+     if(fromMove){
+       if(extra){
+         // Extra move = giliran tetap, tidak mengurangi jumlah jalan.
+         statusEl.textContent=`🌟 EXTRA MOVE! Match ${info.max>=5?'5':info.intersection.length?'L/T':'4'} — kamu tetap bermain.`;
+         toast('🌟 EXTRA MOVE! Giliranmu tetap lanjut');
+         sound('extra');
+       }else{
+         moves=Math.max(0,moves-1);
+       }
+     }
+     updateUI();
+     if(enemyHP<=0)return win();
+     busy=false;
+     if(moves<=0)endTurn();
+     else{
+       if(!extra)statusEl.textContent='✨ Match berhasil! Geser lagi dengan santai.';
+       startTimer();
+     }
+   },DROP_DELAY);
+ },CLEAR_DELAY)
 }
 function collapse(){for(let c=0;c<N;c++){let col=[];for(let r=N-1;r>=0;r--){let v=cells[r*N+c];if(v!==null)col.push(v)}for(let r=N-1,k=0;r>=0;r--,k++)cells[r*N+c]=k<col.length?col[k]:rnd()}}
 function damageEnemy(d){enemyHP=Math.max(0,enemyHP-d);updateUI()}function damagePlayer(d){playerHP=Math.max(0,playerHP-d);updateUI();sound('hurt')}
@@ -49,11 +82,12 @@ function rankUp(){let old=profile.rank;if(profile.rp>=3000)profile.rank='Diamond
 function win(){stopTimer();busy=true;profile.wins++;profile.rp+=50;profile.coin+=100;rankUp();sound('win');show('🏆 MENANG!',`<div class="modeCard"><b>+50 Rank Point • +100 Coin</b><p>Rank sekarang: ${profile.rank} (${profile.rp} RP)</p><p>Booster tetap utuh karena kamu menang.</p><button onclick="restartGame()">▶ Main Lagi</button></div>`)}
 function lose(){stopTimer();busy=true;profile.losses++;Object.keys(tools).forEach(k=>tools[k]=0);updateUI();show('💔 KALAH','<div class="modeCard"><b>Booster habis karena kalah.</b><p>Kamu bisa mendapat alat lagi dengan coin atau Rewarded Ad.</p><button onclick="watchAd()">📺 Tonton iklan +1 alat</button><button onclick="restartGame()">🔄 Coba Lagi</button></div>')}
 window.restartGame=()=>{playerHP=100;enemyHP=100;round=1;turn='player';maxMoves=3;moves=mode==='arena'?7:3;arenaMoves=7;combo=1;score=0;busy=false;activeTool=null;freshBoard();render();hide();statusEl.textContent='🎯 Giliranmu! Geser permata untuk Match 3.';updateUI();announce('Your turn');startTimer()}
-function ctx(){if(!audioCtx){let C=window.AudioContext||window.webkitAudioContext;if(C)audioCtx=new C()}return audioCtx}
+function ctx(){if(!audioCtx){let C=window.AudioContext||window.webkitAudioContext;if(C)audioCtx=new C()}if(audioCtx?.state==='suspended')audioCtx.resume();return audioCtx}
+function unlockAudio(){try{ctx()?.resume?.()}catch(e){}}
 function tone(f,d=.08,type='sine'){if(!soundOn)return;try{let c=ctx(),o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=f;g.gain.value=Math.max(.001,volume/900);o.connect(g).connect(c.destination);o.start();g.exponentialRampToValueAtTime(.001,c.currentTime+d);o.stop(c.currentTime+d)}catch(e){}}
 function sound(k){if(k==='swap')tone(520,.06);else if(k==='explode'){tone(180,.12,'square');setTimeout(()=>tone(720,.09),70)}else if(k==='extra'){tone(660,.1);setTimeout(()=>tone(880,.14),90)}else if(k==='turn')tone(440,.12);else if(k==='hurt')tone(150,.1,'sawtooth');else if(k==='tool')tone(780,.12);else if(k==='win'){tone(660,.12);setTimeout(()=>tone(880,.18),100)}else tone(220,.05)}
 function announce(t){if(soundOn&&'speechSynthesis'in window){try{speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(t);u.lang='en-US';u.volume=Math.min(1,volume/100);speechSynthesis.speak(u)}catch(e){}}}
-function musicStart(){if(!musicOn||musicTimer)return;let notes=[220,262,330,392];let i=0;musicTimer=setInterval(()=>{if(musicOn){let old=soundOn;soundOn=true;tone(notes[i++%notes.length],.13);soundOn=old}},500)}function musicStop(){clearInterval(musicTimer);musicTimer=null}
+function musicStart(){if(!musicOn||musicTimer)return;let notes=[220,262,330,392];let i=0;musicTimer=setInterval(()=>{if(musicOn){let old=soundOn;soundOn=true;tone(notes[i++%notes.length],.13);soundOn=old}},850)}function musicStop(){clearInterval(musicTimer);musicTimer=null}
 const modal=document.getElementById('modal'),modalTitle=document.getElementById('modalTitle'),modalBody=document.getElementById('modalBody');function show(t,h){modalTitle.textContent=t;modalBody.innerHTML=h;modal.classList.remove('hidden')}function hide(){modal.classList.add('hidden')}document.getElementById('closeModal').onclick=hide;
 function openSettings(){show('⚙️ Pengaturan',`<div class="settingRow"><b>← Tombol kembali</b><button onclick="hide()">Kembali</button></div><div class="settingRow"><b>🔉 Volume</b><input id="volRange" type="range" min="0" max="100" value="${volume}"></div><div class="settingRow"><b>🎵 Musik</b><button onclick="toggleMusic()">${musicOn?'ON':'OFF'}</button></div><div class="settingRow"><b>🔊 Sound</b><button onclick="toggleSound()">${soundOn?'ON':'OFF'}</button></div>`);setTimeout(()=>{let r=document.getElementById('volRange');if(r)r.oninput=e=>{volume=+e.target.value;save()}},0)}
 window.toggleMusic=()=>{musicOn=!musicOn;musicOn?musicStart():musicStop();save();openSettings()};window.toggleSound=()=>{soundOn=!soundOn;save();openSettings()};document.getElementById('settingsBtn').onclick=openSettings;
@@ -67,4 +101,4 @@ document.getElementById('buyToolBtn').onclick=()=>show('🪙 Beli Alat','<div cl
 document.getElementById('adToolBtn').onclick=()=>watchAd();window.watchAd=()=>{if(Date.now()<noAdsUntil){toast('🚫 No Ads aktif: tidak perlu iklan');return}let k=Object.keys(tools).sort((a,b)=>tools[a]-tools[b])[0];tools[k]=Math.min(2,tools[k]+1);hide();updateUI();toast('📺 Demo iklan selesai: +1 '+k)};
 board.addEventListener('touchstart',e=>{let g=e.target.closest('.gem');if(!g)return;touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY,i:+g.dataset.i};},{passive:true});board.addEventListener('touchend',e=>{if(!touchStart)return;let dx=e.changedTouches[0].clientX-touchStart.x,dy=e.changedTouches[0].clientY-touchStart.y;if(Math.max(Math.abs(dx),Math.abs(dy))<18){touchStart=null;return}let r=~~(touchStart.i/N),c=touchStart.i%N,ni=touchStart.i;if(Math.abs(dx)>Math.abs(dy)){if(dx>0&&c<N-1)ni++;if(dx<0&&c>0)ni--}else{if(dy>0&&r<N-1)ni+=N;if(dy<0&&r>0)ni-=N}if(ni!==touchStart.i&&!busy&&turn==='player'&&!activeTool)doSwap(touchStart.i,ni);touchStart=null},{passive:true});
 function toast(t){let x=document.getElementById('toast');x.textContent=t;x.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>x.classList.remove('show'),1800)}
-freshBoard();render();updateUI();startTimer();document.addEventListener('pointerdown',()=>musicStart(),{once:true});
+freshBoard();render();updateUI();startTimer();document.addEventListener('pointerdown',()=>{unlockAudio();musicStart()},{once:true});
