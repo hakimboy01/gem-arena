@@ -73,7 +73,7 @@ function finish(cells){
  const jackpot=Math.random()<0.018;
  if(jackpot){stopAuto();sfx('jackpot');best=bet*30;winning=cells.filter((_,i)=>i%4===0).slice(0,5);modal('🐯 JACKPOT!', '<div class="jackpot">JUNGLE JACKPOT!</div><p>Kamu memenangkan <b>'+fmt(best)+' COIN</b></p><button id="claim">📺 TONTON IKLAN & CLAIM</button><p><small>Hadiah adalah coin virtual dalam game.</small></p>');setTimeout(()=>{document.getElementById('claim').onclick=()=>claimJackpot(best)},0)}
  else if(best){sfx('win');lastWin=best;balance+=best;winning.forEach(x=>x.classList.add('win'));setTimeout(()=>winning.forEach(x=>x.classList.remove('win')),900);beep(880,.2)}
- else modal('Belum Beruntung','<p>Coba putaran berikutnya untuk mencari kombinasi baru. 🍀</p>');
+ else if(!autoMode) modal('Belum Beruntung','<p>Coba putaran berikutnya untuk mencari kombinasi baru. 🍀</p>');
  save();render();spinning=false;spinBtn.disabled=false;
  if(autoMode){autoTimer=setTimeout(()=>spin(),spinSpeed===2?550:950)}
 }
@@ -92,9 +92,9 @@ function giveReward(amount){balance+=amount;lastWin=amount;save();render();modal
 document.getElementById('spin').onclick=()=>{unlockSound();sfx('click');spin()};
 document.getElementById('minus').onclick=()=>{bet=Math.max(1000,bet-5000);render();save()};
 document.getElementById('plus').onclick=()=>{bet=Math.min(50000,bet+5000);render();save()};
-document.getElementById('speed').onclick=()=>{spinSpeed=spinSpeed===1?2:1;const b=document.getElementById('speed');b.innerHTML=spinSpeed===1?'⚡ 1×<br>CEPAT':'⚡ 2×<br>SUPER';sfx('click')};
-function stopAuto(){autoMode=false;if(autoTimer){clearTimeout(autoTimer);autoTimer=null}const b=document.getElementById('auto');if(b)b.innerHTML='▶ AUTO<br>OFF'}
-document.getElementById('auto').onclick=()=>{unlockSound();autoMode=!autoMode;const b=document.getElementById('auto');b.innerHTML=autoMode?'⏹ AUTO<br>ON':'▶ AUTO<br>OFF';sfx('click');if(autoMode&&!spinning)spin()};
+document.getElementById('speed').onclick=()=>{unlockSound();spinSpeed=spinSpeed===1?2:1;const b=document.getElementById('speed');b.innerHTML=spinSpeed===1?'⚡ 1×<br>CEPAT':'⚡ 2×<br>SUPER';sfx('click')};
+function stopAuto(){autoMode=false;if(autoTimer){clearTimeout(autoTimer);autoTimer=null}const b=document.getElementById('auto');if(b){b.innerHTML='▶ AUTO<br>OFF';b.classList.remove('activeAuto')}}
+document.getElementById('auto').onclick=()=>{unlockSound();autoMode=!autoMode;const b=document.getElementById('auto');b.innerHTML=autoMode?'⏹ AUTO<br>ON':'▶ AUTO<br>OFF';b.classList.toggle('activeAuto',autoMode);sfx('click');if(autoMode&&!spinning)spin()};
 
 document.getElementById('how').onclick=()=>modal('Cara Main','<p>Tekan SPIN untuk memutar 5 reel. Dapatkan 3, 4, atau 5 simbol yang sama dalam satu baris untuk memperoleh coin virtual.</p><p>JACKPOT membuka tombol Claim dengan Rewarded Ad.</p>');
 function showOutOfCoins(){stopAuto();modal('🪙 COIN HABIS','<p>Kamu bisa kembali besok untuk bonus harian, atau memilih iklan hadiah untuk mendapatkan coin virtual tambahan.</p><button id="rewardCoins">📺 TONTON IKLAN +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=close;document.getElementById('rewardCoins').onclick=()=>showRewarded(25000,'COIN TAMBAHAN')},0)}
@@ -104,4 +104,7 @@ document.getElementById('sound').onclick=()=>{sound=!sound;if(sound){unlockSound
 document.getElementById('settings').onclick=()=>modal('⚙️ PENGATURAN SUARA','<p>Atur musik dan efek suara agar nyaman saat bermain.</p><button id="musicToggle">🎵 Musik: '+(musicOn?'ON':'OFF')+'</button><button id="soundToggle">🔊 Efek: '+(sound?'ON':'OFF')+'</button><p>Volume</p><input id="volumeSlider" type="range" min="0" max="100" value="'+Math.round(masterVolume*100)+'" style="width:100%"><p id="volumeValue">'+Math.round(masterVolume*100)+'%</p>');
 setTimeout(()=>{const mt=document.getElementById('musicToggle'),st=document.getElementById('soundToggle'),sl=document.getElementById('volumeSlider'),vv=document.getElementById('volumeValue');if(mt)mt.onclick=()=>{musicOn=!musicOn;if(musicOn){unlockSound();startMusic()}else stopMusic();mt.textContent='🎵 Musik: '+(musicOn?'ON':'OFF')};if(st)st.onclick=()=>{sound=!sound;if(sound)unlockSound();else stopMusic();st.textContent='🔊 Efek: '+(sound?'ON':'OFF')};if(sl)sl.oninput=()=>{masterVolume=sl.value/100;vv.textContent=sl.value+'%';if(sound)beep(660,.06,'triangle',.08)}},0);
 
-load();makeGrid();render();document.addEventListener('pointerdown',unlockSound,{once:true});
+load();makeGrid();render();
+// Pemeriksaan terakhir: board wajib dibangun ulang bila browser lama menyimpan DOM kosong.
+if(!reels.children.length) makeGrid();
+document.addEventListener('pointerdown',unlockSound,{once:true});
