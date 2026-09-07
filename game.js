@@ -1,5 +1,5 @@
 const board=document.getElementById('board'),statusEl=document.getElementById('status'),scoreEl=document.getElementById('score'),coinsEl=document.getElementById('coins');const comboText=document.getElementById('comboText'),comboFill=document.getElementById('comboFill'),fx=document.getElementById('fxLayer');
-const types=['🔴','🔵','🟢','🟣','🟡','🔶'],N=8;
+const types=['🛑','🔷','🟢','💜','🟨','🔶'],N=8;
 const heroes=[
 {id:'dragon',icon:'🐉',name:'Dragon Dancer',skill:'Dragon Storm',rarity:'LEGENDARY',desc:'Menghancurkan 12 gem acak.'},
 {id:'mage',icon:'🧙',name:'Crystal Mage',skill:'Crystal Rain',rarity:'EPIC',desc:'Mengubah 10 gem menjadi satu warna.'},
@@ -50,7 +50,49 @@ const modes={
 };
 function hero(){return heroes.find(h=>h.id===heroId)||heroes[0]}function rnd(){return Math.floor(Math.random()*types.length)}
 function init(){cells=Array.from({length:64},rnd);while(findMatches().size)cells=Array.from({length:64},rnd);render();updateUI()}
-function render(){board.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='gem drop';b.textContent=types[t];b.dataset.i=i;b.onclick=()=>pick(i,b);board.appendChild(b)})}
+
+// Kontrol Match-3 untuk HP: tap dua gem ATAU geser (swipe) satu gem ke arah gem tetangga.
+let dragStart=null;
+function render(){
+  board.innerHTML='';
+  cells.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='gem drop';
+    b.textContent=types[t];
+    b.dataset.i=i;
+    b.addEventListener('pointerdown',e=>startDrag(i,e));
+    b.addEventListener('pointerup',e=>endDrag(i,e));
+    b.addEventListener('pointercancel',cancelDrag);
+    board.appendChild(b);
+  });
+}
+function startDrag(i,e){
+  if(busy)return;
+  unlockAudio();
+  dragStart={i,x:e.clientX,y:e.clientY};
+  try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}
+}
+function cancelDrag(){dragStart=null}
+function endDrag(i,e){
+  if(!dragStart||busy)return;
+  const start=dragStart; dragStart=null;
+  const dx=e.clientX-start.x,dy=e.clientY-start.y;
+  const threshold=14;
+  if(Math.abs(dx)<threshold&&Math.abs(dy)<threshold){
+    const el=document.querySelector('.gem[data-i="'+i+'"]');
+    pick(i,el);
+    return;
+  }
+  let target=start.i;
+  if(Math.abs(dx)>Math.abs(dy)) target=start.i+(dx>0?1:-1);
+  else target=start.i+(dy>0?N:-N);
+  if(target<0||target>=N*N||!adjacent(start.i,target)){
+    statusEl.textContent='↔️ Geser gem ke arah atas, bawah, kiri, atau kanan.';
+    return;
+  }
+  moveGem(start.i,target);
+}
 function updateUI(){
 scoreEl.textContent=score;coinsEl.textContent=coins;if(score>highestScore){highestScore=score;saveProfile();}localStorage.setItem('gaCoins',coins);comboText.textContent='x'+combo;comboFill.style.width=Math.min(100,combo*18)+'%';Object.keys(boosters).forEach(k=>document.getElementById(k+'Count').textContent=boosters[k]);document.querySelectorAll('.booster').forEach(b=>b.classList.toggle('active',b.dataset.booster===activeBooster));const h=hero();document.getElementById('heroName').textContent=h.icon+' '+h.name;document.getElementById('heroDesc').textContent='Skill: '+h.skill;document.getElementById('heroBtn').textContent=h.icon;document.getElementById('energyText').textContent=energy+'/100';document.getElementById('energyFill').style.width=energy+'%';const sb=document.getElementById('skillBtn');sb.disabled=energy<100;sb.classList.toggle('ready',energy>=100);sb.textContent=energy>=100?'✨ AKTIFKAN: '+h.skill:'🔒 KUMPULKAN ENERGY';
 const p=Math.max(0,playerHP),e=Math.max(0,enemyHP);const arena=campaign?currentLevel():modes[mode];document.getElementById('playerHp').style.width=p+'%';document.getElementById('enemyHp').style.width=e+'%';document.getElementById('playerHpText').textContent=p+'/100';document.getElementById('enemyHpText').textContent=e+'/'+arena.hp;document.getElementById('roundText').textContent='ROUND '+round;document.getElementById('enemyName').textContent=arena.enemy;document.getElementById('enemyAvatar').textContent=arena.avatar;
@@ -61,7 +103,47 @@ const chestBtn=document.getElementById('chestBtn');if(chestBtn){const left=Math.
 }
 function gainEnergy(n){energy=Math.min(100,energy+n);updateUI()}
 function adjacent(a,b){return(Math.abs(a-b)===1&&Math.floor(a/N)===Math.floor(b/N))||Math.abs(a-b)===N}
-function pick(i,el){if(busy)return;if(activeBooster){useBooster(i);return}if(selected===null){selected=i;el.classList.add('selected');return}if(selected===i){selected=null;render();return}if(!adjacent(selected,i)){selected=i;render();document.querySelectorAll('.gem')[i].classList.add('selected');return}const a=selected;swap(a,i);const m=findMatches();if(m.size){selected=null;resolveMatches(m)}else{swap(a,i);selected=null;statusEl.textContent='❌ Belum ada Match 3. Coba langkah lain!';combo=1;updateUI();render()}}
+function pick(i,el){
+  if(busy)return;
+  unlockAudio();
+  if(activeBooster){useBooster(i);return}
+  if(selected===null){
+    selected=i;
+    if(el)el.classList.add('selected');
+    statusEl.textContent='👆 Pilih atau geser ke gem tetangga.';
+    return;
+  }
+  if(selected===i){selected=null;render();return}
+  if(!adjacent(selected,i)){
+    selected=i;render();
+    const next=document.querySelector('.gem[data-i="'+i+'"]');
+    if(next)next.classList.add('selected');
+    return;
+  }
+  moveGem(selected,i);
+}
+function moveGem(a,b){
+  if(busy)return;
+  if(activeBooster){useBooster(b);return}
+  selected=null;
+  swap(a,b);
+  const m=findMatches();
+  render();
+  if(m.size){
+    statusEl.textContent='💥 MATCH! Gem dihancurkan!';
+    sound('swap');
+    setTimeout(()=>resolveMatches(m),90);
+  }else{
+    sound('invalid');
+    setTimeout(()=>{
+      swap(a,b);
+      combo=1;
+      statusEl.textContent='❌ Belum ada Match 3. Coba kombinasi lain!';
+      updateUI();
+      render();
+    },140);
+  }
+}
 function swap(a,b){[cells[a],cells[b]]=[cells[b],cells[a]]}
 function findMatches(){const m=new Set();for(let r=0;r<N;r++)for(let c=0;c<N;){let s=c,v=cells[r*N+c];while(c<N&&cells[r*N+c]===v)c++;if(c-s>=3)for(let x=s;x<c;x++)m.add(r*N+x)}for(let c=0;c<N;c++)for(let r=0;r<N;){let s=r,v=cells[r*N+c];while(r<N&&cells[r*N+c]===v)r++;if(r-s>=3)for(let x=s;x<r;x++)m.add(x*N+c)}return m}
 async function resolveMatches(m){busy=true;combo=Math.min(combo+1,8);const count=m.size;const damage=count*combo*2;score+=count*10*combo;coins+=Math.max(1,Math.floor(count/3));mission=Math.min(30,mission+count);enemyHP=Math.max(0,enemyHP-damage);gainEnergy(count*5);statusEl.textContent='✨ COMBO x'+combo+'! '+count+' gem meledak!';sound('match');burst(m);if(count>=6){boosters.rainbow++;statusEl.textContent='🌈 MEGA MATCH! Rainbow Booster didapat!'}else if(count>=5){boosters.lightning++;statusEl.textContent='⚡ SUPER MATCH! Lightning Booster didapat!'}else if(count>=4){boosters.bomb++;statusEl.textContent='💣 Match 4! Bomb Booster didapat!'}updateUI();await wait(360);m.forEach(i=>cells[i]=null);collapse();render();await wait(260);const next=findMatches();if(next.size){await resolveMatches(next)}else{busy=false;combo=1;updateUI();if(enemyHP<=0){victory();return}statusEl.textContent=energy>=100?'✨ Skill siap! Tekan tombol Skill!':'🎯 Bagus! Bersiap menghadapi serangan musuh.';enemyTurn()}}
@@ -83,31 +165,7 @@ function showHeroes(){show('🧙 HERO ARENA','<p>Pilih karakter original Gem Are
 const rulesBtn=document.getElementById('rules');if(rulesBtn)rulesBtn.onclick=()=>show('📖 Gem Arena Rules','<p><b>Match 3</b> untuk skor, koin, dan Energy.</p><p>💣 Match 4: Bomb • ⚡ Match 5: Lightning • 🌈 Match 6+: Rainbow.</p><p>⚡ Isi Energy sampai 100 untuk memakai Skill Hero.</p>');
 function formatLeft(ms){const h=Math.floor(ms/3600000),m=Math.ceil((ms%3600000)/60000);return h+'j '+m+'m';}
 function chestReady(){return Date.now()-lastChest>=CHEST_COOLDOWN;}
-function openChestRoom(){const ready=chestReady(),left=Math.max(0,CHEST_COOLDOWN-(Date.now()-lastChest)),dailyReady=dailyDate!==todayKey();const days=['1','2','3','4','5','6','7'];show('🎁 REWARD ROOM','<div class="chestHero"><div class="chestIcon">🎁</div><b>Treasure & Daily Rewards</b><small>Kembali setiap hari dan buka chest untuk mengumpulkan resource.</small></div><div class="rewardAction '+(ready?'ready':'')+'"><b>📦 FREE CHEST</b><small class="'+(ready?'':'timerText')+'">'+(ready?'Siap dibuka!':'Tersedia lagi dalam '+formatLeft(left))+'</small><button '+(ready?'onclick="claimChest()"':'disabled')+'>'+ (ready?'✨ BUKA CHEST':'⏳ MENUNGGU')+'</button></div><div class="rewardAction '+(dailyReady?'ready':'')+'"><b>🎁 DAILY LOGIN</b><small>'+ (dailyReady?'Hadiah login hari ini sudah siap!':'Kamu sudah mengambil hadiah hari ini.')+'</small><div class="dailyTrack">'+days.map((d,i)=>'<div class="dayBox '+(i<Math.min(dailyStreak,7)?'done':i===Math.min(dailyStreak,6)?'active':'')+'"><b>🎁</b>Day '+d+'</div>').join('')+'</div><button '+(dailyReady?'onclick="claimDaily()"':'disabled')+'>'+ (dailyReady?'🌟 CLAIM DAILY REWARD':'✓ SUDAH DIAMBIL')+'</button></div></div>');}
-window.claimChest=()=>{if(!chestReady())return;const loot=Math.random();let icon='🪙',label='',detail='';if(loot<.55){const amount=80+Math.floor(Math.random()*121);coins+=amount;label='+'+amount+' COINS';detail='Koin ditambahkan ke inventori.';}else if(loot<.75){boosters.bomb++;icon='💣';label='BOMB BOOSTER';detail='Gunakan untuk menghancurkan area gem.';}else if(loot<.93){boosters.lightning++;icon='⚡';label='LIGHTNING BOOSTER';detail='Hancurkan satu garis secara cepat.';}else{boosters.rainbow++;icon='🌈';label='RAINBOW BOOSTER';detail='Booster langka berhasil ditemukan!';}lastChest=Date.now();updateUI();sound('buy');show('🎉 CHEST DIBUKA!','<div class="lootReveal"><div class="lootIcon">'+icon+'</div><b>'+label+'</b><small>'+detail+'</small><button onclick="openChestRoom()">🎁 KEMBALI KE REWARD ROOM</button></div>');};
-window.claimDaily=()=>{if(dailyDate===todayKey())return;const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);dailyStreak=dailyDate===yesterday?dailyStreak+1:1;if(dailyStreak>7)dailyStreak=1;dailyDate=todayKey();const rewards=[50,75,100,1,150,1,250];const r=rewards[dailyStreak-1];let icon='🪙',label='+'+r+' COINS';if(dailyStreak===4){boosters.bomb++;icon='💣';label='BOMB BOOSTER';}else if(dailyStreak===6){boosters.rainbow++;icon='🌈';label='RAINBOW BOOSTER';}else coins+=r;updateUI();sound('buy');show('🌟 DAILY REWARD!','<div class="lootReveal"><div class="lootIcon">'+icon+'</div><b>DAY '+dailyStreak+' — '+label+'</b><small>Besok kembali lagi untuk melanjutkan streak!</small><button onclick="openChestRoom()">🎁 LIHAT REWARD</button></div>');};
-document.getElementById('chestBtn').onclick=openChestRoom;
-const demoPlayers=[
- {name:'NovaGem',icon:'🧙',rp:870,wins:42},
- {name:'CrystalFox',icon:'🦊',rp:720,wins:38},
- {name:'NeonBlade',icon:'🤖',rp:610,wins:31},
- {name:'DragonSpark',icon:'🐉',rp:540,wins:27},
- {name:'IceQueen',icon:'❄️',rp:430,wins:23},
- {name:'GemHunter',icon:'🏹',rp:310,wins:18},
- {name:'PixelMage',icon:'🪄',rp:190,wins:12},
- {name:'ArenaBot-X',icon:'🤖',rp:140,wins:9}
-];
-function openLeaderboard(){const me={name:playerName,icon:hero().icon,rp:rankPoints,wins:wins,me:true};const rows=[...demoPlayers,me].sort((a,b)=>b.rp-a.rp);show('🏆 LEADERBOARD','<div class="seasonBox"><b>SEASON 1 • DEMO RANKING</b><small>Ranking global asli akan aktif setelah backend realtime terhubung.</small></div>'+rows.map((p,i)=>'<div class="leaderRow '+(p.me?'me':'')+'"><b class="leaderPos">#'+(i+1)+'</b><span class="leaderAvatar">'+p.icon+'</span><div class="leaderInfo"><b>'+p.name+(p.me?' (Kamu)':'')+'</b><small>'+p.wins+' kemenangan</small></div><b>'+p.rp+' RP</b></div>').join(''));}
-function openQuickMatch(){show('⚡ QUICK MATCH','<div class="matchHero"><div class="searchOrb">⚡</div><b>Cari Pertandingan</b><small>Quick Match demo memasangkanmu dengan bot kompetitif sambil backend online belum aktif.</small></div><div class="matchSteps"><div class="matchStep active">🔎 Mencari lawan...</div><div class="matchStep">⚔️ Menyiapkan arena</div><div class="matchStep">🏆 Pertandingan dimulai</div></div><button onclick="startQuickSearch()">⚡ CARI LAWAN</button>');}
-window.startQuickSearch=()=>{const steps=['🔎 Mencari pemain online...','📡 Tidak ada pemain realtime — mencari bot kompetitif...','⚔️ Lawan ditemukan!'];let i=0;document.getElementById('modalBody').innerHTML='<div class="matchHero"><div class="searchOrb">🔎</div><b>QUICK MATCH</b></div><div class="matchStatus" id="matchSearchStatus">'+steps[0]+'</div>';clearInterval(matchTimer);matchTimer=setInterval(()=>{i++;const el=document.getElementById('matchSearchStatus');if(i<steps.length){el.textContent=steps[i];return}clearInterval(matchTimer);quickOpponent=demoPlayers[Math.floor(Math.random()*demoPlayers.length)];const el2=document.getElementById('matchSearchStatus');el2.innerHTML='⚔️ <b>'+quickOpponent.name+'</b> ditemukan!<br><small>Rank '+quickOpponent.rp+' RP • '+quickOpponent.wins+' kemenangan</small><br><button onclick="launchQuickMatch()">🔥 MULAI BATTLE</button>';},850);};
-window.launchQuickMatch=()=>{clearInterval(matchTimer);campaign=false;mode=quickOpponent&&quickOpponent.rp>600?'blitz':'classic';modal.classList.add('hidden');playerHP=100;enemyHP=quickOpponent&&quickOpponent.rp>600?135:110;round=1;energy=0;busy=false;cells=Array.from({length:64},rnd);while(findMatches().size)cells=Array.from({length:64},rnd);document.getElementById('enemyName').textContent=quickOpponent.name;document.getElementById('enemyAvatar').textContent=quickOpponent.icon;document.getElementById('turnText').textContent='QUICK MATCH';statusEl.textContent='⚔️ Quick Match dimulai melawan '+quickOpponent.name+'!';render();updateUI();};
-
-function openProfile(){const l=currentLeague(),games=wins+losses,rate=games?Math.round(wins/games*100):0;show('👤 PLAYER PROFILE','<div class="profileHero"><div class="bigAvatar">'+hero().icon+'</div><h3>'+playerName+'</h3><span class="rankBadge">'+l.icon+' '+l.name+' • '+rankPoints+' RP</span><p>Season 1 • Gem Arena</p></div><div class="profileStats"><div class="profileStat"><b>'+wins+'</b><small>MENANG</small></div><div class="profileStat"><b>'+losses+'</b><small>KALAH</small></div><div class="profileStat"><b>'+rate+'%</b><small>WIN RATE</small></div><div class="profileStat"><b>'+highestScore+'</b><small>BEST SCORE</small></div><div class="profileStat"><b>'+levelId+'</b><small>LEVEL MAP</small></div><div class="profileStat"><b>'+rankPoints+'</b><small>RANK POINT</small></div></div><button onclick="openLeagues()">🏆 LIHAT LEAGUE</button><button onclick="editPlayerName()" style="margin-top:8px">✏️ GANTI NAMA</button>');}
-function openLeagues(){const cur=currentLeague();show('🏆 LEAGUE & RANKING','<div class="seasonBox"><b>SEASON 1</b><small> Naikkan Rank Points dengan memenangkan pertandingan.</small></div><div class="leagueList">'+leagues.map(l=>'<div class="leagueRow '+(l.id===cur.id?'current':rankPoints<l.min?'locked':'')+'"><span class="leagueIcon">'+l.icon+'</span><div><b>'+l.name+'</b><small>'+l.min+' RP'+(l.next===Infinity?' • Rank tertinggi':' → '+l.next+' RP')+'</small></div>' +(l.id===cur.id?'<span style="margin-left:auto">✓</span>':'')+'</div>').join('')+'</div>');}
-function editPlayerName(){show('✏️ GANTI NAMA','<div class="nameEditor"><small>Pilih nama tampilan untuk profil Gem Arena.</small><input id="nameInput" maxlength="16" value="'+playerName.replace(/"/g,'&quot;')+'"><button onclick="savePlayerName()">💾 SIMPAN</button></div>');}
-window.openLeagues=openLeagues;window.editPlayerName=editPlayerName;window.savePlayerName=()=>{const input=document.getElementById('nameInput');const n=input.value.trim();if(n.length<2){alert('Nama minimal 2 karakter');return}playerName=n;saveProfile();updateUI();modal.classList.add('hidden');statusEl.textContent='👤 Nama profil berhasil diperbarui!';};
-document.getElementById('quickMatchBtn').onclick=openQuickMatch;document.getElementById('leaderboardBtn').onclick=openLeaderboard;
-document.getElementById('profileBtn').onclick=openProfile;document.getElementById('profileFooter').onclick=openProfile;
+function openChestRoom(){const ready=chedocument.getElementById('profileBtn').onclick=openProfile;document.getElementById('profileFooter').onclick=openProfile;
 document.getElementById('claimMission').onclick=()=>{if(mission<30||missionClaimed)return;coins+=150;missionClaimed=true;updateUI();statusEl.textContent='🎁 Daily Mission selesai! +150 coins.';sound('buy')};
 window.openMap=()=>{const unlocked=Math.min(levelId,levels.length);show('🗺️ GEM ARENA MAP','<div class="worldHeader"><b>🌍 Campaign Dunia Pertama</b><small> Selesaikan level untuk membuka arena berikutnya.</small></div><div class="mapList">'+levels.map(l=>'<div class="levelCard '+(l.id<unlocked?'unlocked':l.id===unlocked?'current unlocked':'locked')+'"><div class="levelIcon">'+(l.id<=unlocked?l.icon:'🔒')+'</div><div><b>LEVEL '+l.id+' • '+l.world+'</b><small>'+l.desc+'<br>👹 '+l.enemy+' • 🪙 '+l.reward+'</small></div><button class="levelAction" '+(l.id<=unlocked?'onclick="chooseLevel('+l.id+')"':'disabled')+'>'+((l.id===levelId)?'▶ MAIN':l.id<=unlocked?'PILIH':'🔒')+'</button></div>').join('')+'</div>')};
 window.chooseLevel=id=>{if(id>levelId)return;campaign=true;levelId=id;localStorage.setItem('gaLevel',levelId);modal.classList.add('hidden');restartBattle();statusEl.textContent='🗺️ '+currentLevel().world+' dimulai! Kalahkan '+currentLevel().enemy+'!';};
