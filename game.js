@@ -1414,3 +1414,751 @@ document.addEventListener(
   unlockSound,
   { once: true }
 );
+      const claim =
+        document.getElementById('claim');
+
+      if (claim) {
+
+        claim.onclick = () =>
+          claimJackpot(best);
+      }
+
+    }, 0);
+
+  }
+
+  /*
+    WIN NORMAL
+  */
+
+  else if (best > 0) {
+
+    lastWin = best;
+
+    balance += best;
+
+    winning.forEach(cell => {
+
+      cell.classList.add('win');
+
+    });
+
+    sfx('win');
+
+    setTimeout(() => {
+
+      winning.forEach(cell => {
+
+        cell.classList.remove('win');
+
+      });
+
+    }, 900);
+
+  }
+
+  /*
+    NO WIN
+  */
+
+  else if (!autoMode) {
+
+    modal(
+      '🍀 Belum Beruntung',
+      `
+      <p>
+        Coba putaran berikutnya
+        untuk mencari kombinasi baru!
+      </p>
+      `
+    );
+  }
+
+  save();
+
+  render();
+
+  spinning = false;
+
+  spinBtn.disabled = false;
+
+  /*
+    AUTO SPIN
+  */
+
+  if (autoMode) {
+
+    autoTimer =
+      setTimeout(() => {
+
+        if (
+          autoMode &&
+          !spinning
+        ) {
+          spin();
+        }
+
+      },
+      spinSpeed === 1
+        ? 1100
+        : 650
+      );
+  }
+}
+
+/* =========================
+   JACKPOT CLAIM
+========================= */
+
+async function claimJackpot(amount) {
+
+  closeModal();
+
+  if (
+    typeof window.showRewardedAd ===
+    'function'
+  ) {
+
+    try {
+
+      const rewarded =
+        await window.showRewardedAd();
+
+      if (rewarded === false) {
+
+        modal(
+          'Iklan Belum Selesai',
+          '<p>Hadiah diberikan setelah iklan selesai.</p>'
+        );
+
+        return;
+      }
+
+    } catch (e) {
+
+      modal(
+        'Iklan Belum Tersedia',
+        '<p>Coba lagi beberapa saat.</p>'
+      );
+
+      return;
+    }
+
+  } else {
+
+    /*
+      Simulasi WEB
+    */
+
+    showAdSimulation(
+      amount,
+      'JACKPOT'
+    );
+
+    return;
+  }
+
+  giveReward(amount);
+}
+
+/* =========================
+   AD SIMULATION WEB
+========================= */
+
+function showAdSimulation(
+  amount,
+  label
+) {
+
+  modal(
+    '📺 IKLAN HADIAH',
+    `
+    <p>
+      ${label}
+    </p>
+
+    <div class="count" id="count">
+      5
+    </div>
+
+    <p>
+      Menunggu hadiah...
+    </p>
+    `
+  );
+
+  let seconds = 5;
+
+  const timer =
+    setInterval(() => {
+
+      seconds--;
+
+      const count =
+        document.getElementById('count');
+
+      if (count) {
+        count.textContent = seconds;
+      }
+
+      if (seconds <= 0) {
+
+        clearInterval(timer);
+
+        closeModal();
+
+        giveReward(amount);
+      }
+
+    }, 1000);
+}
+
+/* =========================
+   GIVE REWARD
+========================= */
+
+function giveReward(amount) {
+
+  balance += amount;
+
+  lastWin = amount;
+
+  save();
+
+  render();
+
+  modal(
+    '🎉 HADIAH DIKLAIM',
+    `
+    <div class="jackpot">
+      +${fmt(amount)} COIN
+    </div>
+
+    <p>
+      Hadiah sudah masuk ke saldo game.
+    </p>
+    `
+  );
+
+  sfx('win');
+}
+
+/* =========================
+   OUT OF COINS
+========================= */
+
+function showOutOfCoins() {
+
+  stopAuto();
+
+  modal(
+    '🪙 COIN HABIS',
+    `
+    <p>
+      Coin kamu habis.
+    </p>
+
+    <button id="rewardCoins">
+      🎁 BONUS +25.000 COIN
+    </button>
+
+    <button id="cancelReward">
+      ⬅️ KEMBALI
+    </button>
+    `
+  );
+
+  setTimeout(() => {
+
+    const reward =
+      document.getElementById(
+        'rewardCoins'
+      );
+
+    const cancel =
+      document.getElementById(
+        'cancelReward'
+      );
+
+    if (cancel) {
+      cancel.onclick =
+        closeModal;
+    }
+
+    if (reward) {
+
+      reward.onclick = () => {
+
+        closeModal();
+
+        showRewarded(
+          25000,
+          'BONUS COIN'
+        );
+      };
+    }
+
+  }, 0);
+}
+
+function showRewarded(
+  amount,
+  label
+) {
+
+  if (
+    typeof window.showRewardedAd ===
+    'function'
+  ) {
+
+    Promise.resolve(
+      window.showRewardedAd()
+    )
+      .then(result => {
+
+        if (result !== false) {
+
+          giveReward(amount);
+
+        }
+
+      })
+      .catch(() => {
+
+        modal(
+          'Iklan Belum Tersedia',
+          '<p>Coba lagi nanti.</p>'
+        );
+
+      });
+
+    return;
+  }
+
+  showAdSimulation(
+    amount,
+    label
+  );
+}
+
+/* =========================
+   DAILY BONUS
+========================= */
+
+document.getElementById(
+  'bonus'
+).onclick = () => {
+
+  unlockSound();
+
+  const key =
+    'jcrBonusDay';
+
+  const today =
+    new Date().toDateString();
+
+  if (
+    localStorage.getItem(key) ===
+    today
+  ) {
+
+    modal(
+      '🎁 Bonus Harian',
+      '<p>Bonus hari ini sudah diambil. Kembali lagi besok!</p>'
+    );
+
+    return;
+  }
+
+  balance += 10000;
+
+  localStorage.setItem(
+    key,
+    today
+  );
+
+  save();
+
+  render();
+
+  modal(
+    '🎁 BONUS HARIAN',
+    `
+    <div class="jackpot">
+      +10.000 COIN
+    </div>
+
+    <p>
+      Bonus sudah masuk!
+    </p>
+
+    <button id="doubleBonus">
+      🎁 BONUS TAMBAHAN
+    </button>
+    `
+  );
+
+  setTimeout(() => {
+
+    const button =
+      document.getElementById(
+        'doubleBonus'
+      );
+
+    if (button) {
+
+      button.onclick = () => {
+
+        closeModal();
+
+        showRewarded(
+          10000,
+          'BONUS TAMBAHAN'
+        );
+      };
+    }
+
+  }, 0);
+};
+
+/* =========================
+   BET
+========================= */
+
+document.getElementById(
+  'minus'
+).onclick = () => {
+
+  unlockSound();
+
+  bet =
+    Math.max(
+      1000,
+      bet - 5000
+    );
+
+  sfx('click');
+
+  render();
+
+  save();
+};
+
+document.getElementById(
+  'plus'
+).onclick = () => {
+
+  unlockSound();
+
+  bet =
+    Math.min(
+      50000,
+      bet + 5000
+    );
+
+  sfx('click');
+
+  render();
+
+  save();
+};
+
+/* =========================
+   SPEED
+========================= */
+
+document.getElementById(
+  'speed'
+).onclick = () => {
+
+  unlockSound();
+
+  if (spinning) return;
+
+  spinSpeed =
+    spinSpeed === 1
+      ? 2
+      : 1;
+
+  sfx('click');
+
+  render();
+
+  save();
+};
+
+/* =========================
+   AUTO
+========================= */
+
+function stopAuto() {
+
+  autoMode = false;
+
+  if (autoTimer) {
+
+    clearTimeout(autoTimer);
+
+    autoTimer = null;
+  }
+
+  const button =
+    document.getElementById('auto');
+
+  if (button) {
+
+    button.innerHTML =
+      '▶ AUTO<br>OFF';
+
+    button.classList.remove(
+      'activeAuto'
+    );
+  }
+}
+
+document.getElementById(
+  'auto'
+).onclick = () => {
+
+  unlockSound();
+
+  autoMode = !autoMode;
+
+  const button =
+    document.getElementById('auto');
+
+  button.innerHTML =
+    autoMode
+      ? '⏹ AUTO<br>ON'
+      : '▶ AUTO<br>OFF';
+
+  button.classList.toggle(
+    'activeAuto',
+    autoMode
+  );
+
+  sfx('click');
+
+  if (
+    autoMode &&
+    !spinning
+  ) {
+    spin();
+  }
+};
+
+/* =========================
+   SPIN BUTTON
+========================= */
+
+spinBtn.onclick = () => {
+
+  unlockSound();
+
+  sfx('click');
+
+  spin();
+};
+
+/* =========================
+   HOW TO PLAY
+========================= */
+
+document.getElementById(
+  'how'
+).onclick = () => {
+
+  modal(
+    '❓ CARA MAIN',
+    `
+    <p>
+      Tekan SPIN untuk memutar
+      5 reel.
+    </p>
+
+    <p>
+      Dapatkan minimal 3 simbol
+      yang sama dalam satu baris.
+    </p>
+
+    <p>
+      Semakin banyak simbol sama,
+      semakin besar hadiah.
+    </p>
+    `
+  );
+};
+
+/* =========================
+   SOUND BUTTON
+========================= */
+
+document.getElementById(
+  'sound'
+).onclick = () => {
+
+  unlockSound();
+
+  sfxOn = !sfxOn;
+
+  if (sfxOn) {
+
+    sfx('click');
+
+  }
+
+  render();
+
+  save();
+};
+
+/* =========================
+   SETTINGS
+========================= */
+
+document.getElementById(
+  'settings'
+).onclick = () => {
+
+  modal(
+    '⚙️ PENGATURAN',
+    `
+    <p>Atur suara game.</p>
+
+    <button id="musicToggle">
+      🎵 Musik:
+      ${musicOn ? 'ON' : 'OFF'}
+    </button>
+
+    <button id="sfxToggle">
+      🔊 Efek:
+      ${sfxOn ? 'ON' : 'OFF'}
+    </button>
+
+    <p>Volume</p>
+
+    <input
+      id="volumeSlider"
+      type="range"
+      min="0"
+      max="100"
+      value="${Math.round(masterVolume * 100)}"
+      style="width:100%"
+    >
+
+    <p id="volumeValue">
+      ${Math.round(masterVolume * 100)}%
+    </p>
+    `
+  );
+
+  setTimeout(() => {
+
+    const musicToggle =
+      document.getElementById(
+        'musicToggle'
+      );
+
+    const sfxToggle =
+      document.getElementById(
+        'sfxToggle'
+      );
+
+    const slider =
+      document.getElementById(
+        'volumeSlider'
+      );
+
+    const value =
+      document.getElementById(
+        'volumeValue'
+      );
+
+    if (musicToggle) {
+
+      musicToggle.onclick = () => {
+
+        musicOn = !musicOn;
+
+        if (musicOn) {
+
+          unlockSound();
+
+          startMusic();
+
+        } else {
+
+          stopMusic();
+        }
+
+        musicToggle.innerHTML =
+          `🎵 Musik: ${
+            musicOn ? 'ON' : 'OFF'
+          }`;
+
+        save();
+      };
+    }
+
+    if (sfxToggle) {
+
+      sfxToggle.onclick = () => {
+
+        sfxOn = !sfxOn;
+
+        sfxToggle.innerHTML =
+          `🔊 Efek: ${
+            sfxOn ? 'ON' : 'OFF'
+          }`;
+
+        save();
+      };
+    }
+
+    if (slider) {
+
+      slider.oninput = () => {
+
+        masterVolume =
+          Number(slider.value) / 100;
+
+        value.textContent =
+          `${slider.value}%`;
+
+        save();
+      };
+    }
+
+  }, 0);
+};
+
+/* =========================
+   INITIALIZE
+========================= */
+
+load();
+
+makeGrid();
+
+render();
+
+/*
+  Pastikan board selalu ada
+*/
+
+if (
+  !reels.children.length
+) {
+  makeGrid();
+}
+
+/*
+  Browser membutuhkan sentuhan pertama
+  untuk mengaktifkan audio.
+*/
+
+document.addEventListener(
+  'pointerdown',
+  unlockSound,
+  { once: true }
+);
