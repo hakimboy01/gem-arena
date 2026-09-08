@@ -1,110 +1,1416 @@
-const symbols=['🪙','💎','🧧','🪭','🍀','🐾','🌕','🧨'];
-const reels=document.getElementById('reels'),spinBtn=document.getElementById('spin');
-let balance=250000,bet=10000,sound=true,spinning=false,lastWin=0,spinSpeed=1,autoMode=false,autoTimer=null;
-const fmt=n=>new Intl.NumberFormat('id-ID').format(Math.floor(n));
-function save(){localStorage.setItem('jcr',JSON.stringify({balance,bet}))}
-function load(){try{const d=JSON.parse(localStorage.getItem('jcr'));if(d){balance=d.balance??balance;bet=d.bet??bet}}catch(e){}}
-function render(){document.getElementById('coins').textContent=fmt(balance);document.getElementById('bet').textContent=fmt(bet);document.getElementById('win').textContent=fmt(lastWin)}
-function makeGrid(){reels.innerHTML='';for(let c=0;c<5;c++){const r=document.createElement('div');r.className='reel';for(let row=0;row<3;row++){const s=document.createElement('div');s.className='symbol';s.dataset.c=c;s.dataset.r=row;s.textContent=symbols[Math.floor(Math.random()*symbols.length)];r.appendChild(s)}reels.appendChild(r)}}
-let masterVolume=0.55,musicOn=true,musicTimer=null,audioCtx=null;
-function audio(){
- try{
-  if(!audioCtx){const C=window.AudioContext||window.webkitAudioContext;if(C)audioCtx=new C()}
-  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
-  return audioCtx;
- }catch(e){return null}
-}
-function beep(f=440,d=.08,type='sine',vol=.08){
- if(!sound)return;
- const ctx=audio();if(!ctx)return;
- try{const o=ctx.createOscillator(),gain=ctx.createGain();
- o.type=type;o.frequency.setValueAtTime(f,ctx.currentTime);
- gain.gain.setValueAtTime(Math.max(.001,vol*masterVolume),ctx.currentTime);
- gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
- o.connect(gain);gain.connect(ctx.destination);o.start();o.stop(ctx.currentTime+d+.02)}catch(e){}
-}
-function sfx(name){
- if(name==='spin'){beep(240,.05,'triangle',.07);setTimeout(()=>beep(360,.05,'triangle',.06),55)}
- if(name==='stop')beep(420,.07,'sine',.08);
- if(name==='win'){beep(660,.10,'triangle',.1);setTimeout(()=>beep(880,.16,'triangle',.1),100)}
- if(name==='jackpot'){[523,659,784,1046].forEach((n,i)=>setTimeout(()=>beep(n,.16,'triangle',.12),i*110))}
- if(name==='coin')beep(920,.06,'sine',.08);
- if(name==='click')beep(520,.04,'triangle',.05);
-}
-function startMusic(){
- if(!musicOn||!sound||musicTimer)return;
- const notes=[220,277,330,277,247,294,370,294];let i=0;
- const loop=()=>{if(!musicOn||!sound){musicTimer=null;return}beep(notes[i++%notes.length],.20,'sine',.025);musicTimer=setTimeout(loop,900)};
- loop();
-}
-function stopMusic(){if(musicTimer){clearTimeout(musicTimer);musicTimer=null}}
-function unlockSound(){audio();if(musicOn)startMusic()}
-function modal(title,html){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=html;document.getElementById('modal').classList.remove('hidden')}
-function close(){document.getElementById('modal').classList.add('hidden')}
-document.getElementById('close').onclick=close;
-function spin(){
- if(spinning)return;
- if(balance<bet){stopAuto();showOutOfCoins();return}
- spinning=true;spinBtn.disabled=true;balance-=bet;lastWin=0;render();
- const reelsArr=[...document.querySelectorAll('.reel')];
- const interval=spinSpeed===2?55:110;
- const rounds=spinSpeed===2?9:13;
- // Reel berhenti berurutan dari kiri ke kanan agar hasil mudah dilihat.
- reelsArr.forEach((reel,col)=>{
-   let ticks=0;
-   const cells=[...reel.querySelectorAll('.symbol')];
-   const timer=setInterval(()=>{
-     cells.forEach(x=>x.textContent=symbols[Math.floor(Math.random()*symbols.length)]);
-     if(ticks%4===0)sfx('spin');
-     ticks++;
-     if(ticks>=rounds+col*3){
-       clearInterval(timer);
-       reel.style.transform='translateY(8px)';
-       setTimeout(()=>{reel.style.transform='translateY(0)';sfx('stop')},140);
-       if(col===reelsArr.length-1)setTimeout(()=>finish([...document.querySelectorAll('.symbol')]),180);
-     }
-   },interval);
- });
-}
-function finish(cells){
- const rows=[0,1,2].map(r=>cells.filter(x=>+x.dataset.r===r).map(x=>x.textContent));
- let best=0,winning=[];
- rows.forEach((row,ri)=>{const counts={};row.forEach(s=>counts[s]=(counts[s]||0)+1);const max=Math.max(...Object.values(counts));if(max>=3){const sym=Object.keys(counts).find(k=>counts[k]===max);const mult=max===5?12:max===4?5:2;const w=bet*mult;if(w>best){best=w;winning=cells.filter(x=>+x.dataset.r===ri&&x.textContent===sym)}}});
- const jackpot=Math.random()<0.018;
- if(jackpot){stopAuto();sfx('jackpot');best=bet*30;winning=cells.filter((_,i)=>i%4===0).slice(0,5);modal('🐯 JACKPOT!', '<div class="jackpot">JUNGLE JACKPOT!</div><p>Kamu memenangkan <b>'+fmt(best)+' COIN</b></p><button id="claim">📺 TONTON IKLAN & CLAIM</button><p><small>Hadiah adalah coin virtual dalam game.</small></p>');setTimeout(()=>{document.getElementById('claim').onclick=()=>claimJackpot(best)},0)}
- else if(best){sfx('win');lastWin=best;balance+=best;winning.forEach(x=>x.classList.add('win'));setTimeout(()=>winning.forEach(x=>x.classList.remove('win')),900);beep(880,.2)}
- else if(!autoMode) modal('Belum Beruntung','<p>Coba putaran berikutnya untuk mencari kombinasi baru. 🍀</p>');
- save();render();spinning=false;spinBtn.disabled=false;
- if(autoMode){autoTimer=setTimeout(()=>spin(),spinSpeed===2?550:950)}
-}
-async function claimJackpot(amount){
- close();
- // Integrasi Android dapat mengganti fungsi ini dengan Rewarded Ad SDK asli.
- if(typeof window.showRewardedAd==='function'){
-   try{await window.showRewardedAd()}catch(e){modal('Iklan Belum Selesai','<p>Hadiah belum bisa diberikan karena iklan tidak selesai.</p>');return}
- }else{
-   modal('📺 IKLAN HADIAH','<p>Simulasi iklan untuk versi web.</p><div class="count" id="count">8</div><p>Menunggu sampai iklan selesai...</p>');
-   let n=8;const t=setInterval(()=>{n--;const el=document.getElementById('count');if(el)el.textContent=n;if(n<=0){clearInterval(t);close();giveReward(amount)}},1000);return;
- }
- giveReward(amount);
-}
-function giveReward(amount){balance+=amount;lastWin=amount;save();render();modal('🎉 HADIAH DIKLAIM','<div class="jackpot">+'+fmt(amount)+' COIN</div><p>Hadiah virtual sudah masuk ke saldo game.</p>');beep(990,.25)}
-document.getElementById('spin').onclick=()=>{unlockSound();sfx('click');spin()};
-document.getElementById('minus').onclick=()=>{bet=Math.max(1000,bet-5000);render();save()};
-document.getElementById('plus').onclick=()=>{bet=Math.min(50000,bet+5000);render();save()};
-document.getElementById('speed').onclick=()=>{unlockSound();spinSpeed=spinSpeed===1?2:1;const b=document.getElementById('speed');b.innerHTML=spinSpeed===1?'⚡ 1×<br>CEPAT':'⚡ 2×<br>SUPER';sfx('click')};
-function stopAuto(){autoMode=false;if(autoTimer){clearTimeout(autoTimer);autoTimer=null}const b=document.getElementById('auto');if(b){b.innerHTML='▶ AUTO<br>OFF';b.classList.remove('activeAuto')}}
-document.getElementById('auto').onclick=()=>{unlockSound();autoMode=!autoMode;const b=document.getElementById('auto');b.innerHTML=autoMode?'⏹ AUTO<br>ON':'▶ AUTO<br>OFF';b.classList.toggle('activeAuto',autoMode);sfx('click');if(autoMode&&!spinning)spin()};
+const symbols = ['🪙', '💎', '🧧', '🪭', '🍀', '🐾', '🌕', '🧨'];
 
-document.getElementById('how').onclick=()=>modal('Cara Main','<p>Tekan SPIN untuk memutar 5 reel. Dapatkan 3, 4, atau 5 simbol yang sama dalam satu baris untuk memperoleh coin virtual.</p><p>JACKPOT membuka tombol Claim dengan Rewarded Ad.</p>');
-function showOutOfCoins(){stopAuto();modal('🪙 COIN HABIS','<p>Kamu bisa kembali besok untuk bonus harian, atau memilih iklan hadiah untuk mendapatkan coin virtual tambahan.</p><button id="rewardCoins">📺 TONTON IKLAN +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=close;document.getElementById('rewardCoins').onclick=()=>showRewarded(25000,'COIN TAMBAHAN')},0)}
-function showRewarded(amount,label){close();if(typeof window.showRewardedAd==='function'){Promise.resolve(window.showRewardedAd()).then(()=>giveReward(amount)).catch(()=>modal('Iklan Belum Selesai','<p>Hadiah hanya diberikan setelah iklan selesai.</p>'));return}modal('📺 IKLAN HADIAH','<p>Mode web menggunakan simulasi. APK nanti akan memakai Rewarded Ads asli setelah AdMob dikonfigurasi.</p><div class="count" id="count">5</div>');let n=5,t=setInterval(()=>{n--;let e=document.getElementById('count');if(e)e.textContent=n;if(n<=0){clearInterval(t);close();giveReward(amount)}},1000)}
-document.getElementById('bonus').onclick=()=>{const key='jcrBonusDay',today=new Date().toDateString();if(localStorage.getItem(key)===today){modal('Bonus Harian','<p>Bonus hari ini sudah diambil. Kembali lagi besok! 🎁</p>');return}balance+=10000;localStorage.setItem(key,today);save();render();modal('🎁 BONUS HARIAN','<div class="jackpot">+10.000 COIN</div><p>Pilih hadiah tambahan jika ingin.</p><button id="doubleBonus">📺 TONTON IKLAN +10.000 LAGI</button>');setTimeout(()=>{const b=document.getElementById('doubleBonus');if(b)b.onclick=()=>showRewarded(10000,'BONUS 2×')},0)};
-document.getElementById('sound').onclick=()=>{sound=!sound;if(sound){unlockSound();startMusic()}else stopMusic();document.getElementById('sound').textContent=sound?'🔊 Suara':'🔇 Senyap'};
-document.getElementById('settings').onclick=()=>modal('⚙️ PENGATURAN SUARA','<p>Atur musik dan efek suara agar nyaman saat bermain.</p><button id="musicToggle">🎵 Musik: '+(musicOn?'ON':'OFF')+'</button><button id="soundToggle">🔊 Efek: '+(sound?'ON':'OFF')+'</button><p>Volume</p><input id="volumeSlider" type="range" min="0" max="100" value="'+Math.round(masterVolume*100)+'" style="width:100%"><p id="volumeValue">'+Math.round(masterVolume*100)+'%</p>');
-setTimeout(()=>{const mt=document.getElementById('musicToggle'),st=document.getElementById('soundToggle'),sl=document.getElementById('volumeSlider'),vv=document.getElementById('volumeValue');if(mt)mt.onclick=()=>{musicOn=!musicOn;if(musicOn){unlockSound();startMusic()}else stopMusic();mt.textContent='🎵 Musik: '+(musicOn?'ON':'OFF')};if(st)st.onclick=()=>{sound=!sound;if(sound)unlockSound();else stopMusic();st.textContent='🔊 Efek: '+(sound?'ON':'OFF')};if(sl)sl.oninput=()=>{masterVolume=sl.value/100;vv.textContent=sl.value+'%';if(sound)beep(660,.06,'triangle',.08)}},0);
+const reels = document.getElementById('reels');
+const spinBtn = document.getElementById('spin');
 
-load();makeGrid();render();
-// Pemeriksaan terakhir: board wajib dibangun ulang bila browser lama menyimpan DOM kosong.
-if(!reels.children.length) makeGrid();
-document.addEventListener('pointerdown',unlockSound,{once:true});
+let balance = 250000;
+let bet = 10000;
+let spinning = false;
+let lastWin = 0;
+
+let spinSpeed = 1;
+let autoMode = false;
+let autoTimer = null;
+
+let musicOn = true;
+let sfxOn = true;
+let masterVolume = 0.55;
+
+let audioCtx = null;
+let musicTimer = null;
+
+const fmt = n =>
+  new Intl.NumberFormat('id-ID').format(Math.floor(n));
+
+/* =========================
+   SAVE / LOAD
+========================= */
+
+function save() {
+  localStorage.setItem(
+    'jcr',
+    JSON.stringify({
+      balance,
+      bet,
+      musicOn,
+      sfxOn,
+      masterVolume,
+      spinSpeed
+    })
+  );
+}
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('jcr'));
+
+    if (!d) return;
+
+    balance = d.balance ?? balance;
+    bet = d.bet ?? bet;
+
+    musicOn = d.musicOn ?? musicOn;
+    sfxOn = d.sfxOn ?? sfxOn;
+    masterVolume = d.masterVolume ?? masterVolume;
+    spinSpeed = d.spinSpeed ?? spinSpeed;
+
+  } catch (e) {
+    console.log('Load error', e);
+  }
+}
+
+/* =========================
+   RENDER
+========================= */
+
+function render() {
+  document.getElementById('coins').textContent = fmt(balance);
+  document.getElementById('bet').textContent = fmt(bet);
+  document.getElementById('win').textContent = fmt(lastWin);
+
+  const speedBtn = document.getElementById('speed');
+
+  if (speedBtn) {
+    speedBtn.innerHTML =
+      spinSpeed === 1
+        ? '⚡ 1×<br>CEPAT'
+        : '⚡ 2×<br>SUPER';
+  }
+
+  const soundBtn = document.getElementById('sound');
+
+  if (soundBtn) {
+    soundBtn.textContent =
+      sfxOn ? '🔊 Suara' : '🔇 Senyap';
+  }
+}
+
+/* =========================
+   CREATE BOARD
+========================= */
+
+function randomSymbol() {
+  return symbols[
+    Math.floor(Math.random() * symbols.length)
+  ];
+}
+
+function makeGrid() {
+
+  reels.innerHTML = '';
+
+  for (let col = 0; col < 5; col++) {
+
+    const reel = document.createElement('div');
+
+    reel.className = 'reel';
+
+    for (let row = 0; row < 3; row++) {
+
+      const cell = document.createElement('div');
+
+      cell.className = 'symbol';
+
+      cell.dataset.c = col;
+      cell.dataset.r = row;
+
+      cell.textContent = randomSymbol();
+
+      reel.appendChild(cell);
+    }
+
+    reels.appendChild(reel);
+  }
+}
+
+/* =========================
+   AUDIO
+========================= */
+
+function getAudio() {
+
+  try {
+
+    if (!audioCtx) {
+
+      const Audio =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+      if (Audio) {
+        audioCtx = new Audio();
+      }
+    }
+
+    if (
+      audioCtx &&
+      audioCtx.state === 'suspended'
+    ) {
+      audioCtx.resume().catch(() => {});
+    }
+
+    return audioCtx;
+
+  } catch (e) {
+
+    return null;
+  }
+}
+
+function beep(
+  frequency = 440,
+  duration = 0.08,
+  type = 'sine',
+  volume = 0.08
+) {
+
+  if (!sfxOn) return;
+
+  const ctx = getAudio();
+
+  if (!ctx) return;
+
+  try {
+
+    const oscillator =
+      ctx.createOscillator();
+
+    const gain =
+      ctx.createGain();
+
+    oscillator.type = type;
+
+    oscillator.frequency.setValueAtTime(
+      frequency,
+      ctx.currentTime
+    );
+
+    gain.gain.setValueAtTime(
+      Math.max(
+        0.001,
+        volume * masterVolume
+      ),
+      ctx.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+
+    oscillator.stop(
+      ctx.currentTime + duration + 0.03
+    );
+
+  } catch (e) {}
+}
+
+/* =========================
+   SOUND EFFECTS
+========================= */
+
+function sfx(name) {
+
+  if (!sfxOn) return;
+
+  if (name === 'spin') {
+
+    beep(220, 0.05, 'triangle', 0.06);
+
+    setTimeout(() => {
+      beep(300, 0.05, 'triangle', 0.05);
+    }, 45);
+
+  }
+
+  if (name === 'stop') {
+
+    beep(420, 0.07, 'sine', 0.08);
+
+  }
+
+  if (name === 'win') {
+
+    beep(660, 0.10, 'triangle', 0.10);
+
+    setTimeout(() => {
+      beep(880, 0.16, 'triangle', 0.10);
+    }, 110);
+
+  }
+
+  if (name === 'jackpot') {
+
+    [523, 659, 784, 1046]
+      .forEach((note, i) => {
+
+        setTimeout(() => {
+          beep(
+            note,
+            0.16,
+            'triangle',
+            0.12
+          );
+        }, i * 120);
+
+      });
+
+  }
+
+  if (name === 'click') {
+
+    beep(520, 0.05, 'triangle', 0.05);
+
+  }
+
+}
+
+/* =========================
+   MUSIC
+========================= */
+
+function musicNote(
+  frequency,
+  duration = 0.18
+) {
+
+  if (!musicOn) return;
+
+  const ctx = getAudio();
+
+  if (!ctx) return;
+
+  try {
+
+    const oscillator =
+      ctx.createOscillator();
+
+    const gain =
+      ctx.createGain();
+
+    oscillator.type = 'sine';
+
+    oscillator.frequency.value =
+      frequency;
+
+    gain.gain.setValueAtTime(
+      0.018 * masterVolume,
+      ctx.currentTime
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      ctx.currentTime + duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    oscillator.start();
+
+    oscillator.stop(
+      ctx.currentTime + duration
+    );
+
+  } catch (e) {}
+}
+
+function startMusic() {
+
+  if (!musicOn) return;
+
+  if (musicTimer) return;
+
+  const notes = [
+    220,
+    277,
+    330,
+    277,
+    247,
+    294,
+    370,
+    294
+  ];
+
+  let index = 0;
+
+  function loop() {
+
+    if (!musicOn) {
+
+      musicTimer = null;
+
+      return;
+    }
+
+    musicNote(
+      notes[index % notes.length]
+    );
+
+    index++;
+
+    musicTimer =
+      setTimeout(loop, 850);
+  }
+
+  loop();
+}
+
+function stopMusic() {
+
+  if (musicTimer) {
+
+    clearTimeout(musicTimer);
+
+    musicTimer = null;
+  }
+}
+
+function unlockSound() {
+
+  getAudio();
+
+  if (musicOn) {
+    startMusic();
+  }
+}
+
+/* =========================
+   MODAL
+========================= */
+
+function modal(title, html) {
+
+  document.getElementById(
+    'modalTitle'
+  ).textContent = title;
+
+  document.getElementById(
+    'modalBody'
+  ).innerHTML = html;
+
+  document.getElementById(
+    'modal'
+  ).classList.remove('hidden');
+}
+
+function closeModal() {
+
+  document.getElementById(
+    'modal'
+  ).classList.add('hidden');
+}
+
+document.getElementById(
+  'close'
+).onclick = closeModal;
+
+/* =========================
+   SPIN
+========================= */
+
+function spin() {
+
+  if (spinning) return;
+
+  if (balance < bet) {
+
+    stopAuto();
+
+    showOutOfCoins();
+
+    return;
+  }
+
+  unlockSound();
+
+  spinning = true;
+
+  spinBtn.disabled = true;
+
+  balance -= bet;
+
+  lastWin = 0;
+
+  render();
+
+  const reelsArr =
+    [...document.querySelectorAll('.reel')];
+
+  /*
+    SPEED 1 = lebih santai
+    SPEED 2 = lebih cepat
+  */
+
+  const interval =
+    spinSpeed === 1
+      ? 115
+      : 55;
+
+  const rounds =
+    spinSpeed === 1
+      ? 13
+      : 8;
+
+  reelsArr.forEach(
+    (reel, col) => {
+
+      reel.classList.add('spinning');
+
+      let ticks = 0;
+
+      const cells =
+        [...reel.querySelectorAll('.symbol')];
+
+      const stopAfter =
+        rounds + col * 3;
+
+      const timer =
+        setInterval(() => {
+
+          /*
+            Simbol berubah
+            memberi kesan reel bergerak
+          */
+
+          cells.forEach(cell => {
+
+            cell.textContent =
+              randomSymbol();
+
+          });
+
+          if (
+            ticks % 4 === 0
+          ) {
+            sfx('spin');
+          }
+
+          ticks++;
+
+          if (
+            ticks >= stopAfter
+          ) {
+
+            clearInterval(timer);
+
+            reel.classList.remove(
+              'spinning'
+            );
+
+            reel.classList.add(
+              'stopped'
+            );
+
+            sfx('stop');
+
+            setTimeout(() => {
+
+              reel.classList.remove(
+                'stopped'
+              );
+
+            }, 220);
+
+            /*
+              Reel terakhir selesai
+            */
+
+            if (
+              col === reelsArr.length - 1
+            ) {
+
+              setTimeout(() => {
+
+                finish();
+
+              }, 250);
+            }
+          }
+
+        }, interval);
+
+    }
+  );
+}
+
+/* =========================
+   CHECK WIN
+========================= */
+
+function finish() {
+
+  const cells =
+    [...document.querySelectorAll('.symbol')];
+
+  const rows =
+    [0, 1, 2].map(row => {
+
+      return cells
+        .filter(cell =>
+          Number(cell.dataset.r) === row
+        )
+        .map(cell => cell.textContent);
+
+    });
+
+  let best = 0;
+
+  let winning = [];
+
+  rows.forEach(
+    (row, rowIndex) => {
+
+      const counts = {};
+
+      row.forEach(symbol => {
+
+        counts[symbol] =
+          (counts[symbol] || 0) + 1;
+
+      });
+
+      const max =
+        Math.max(
+          ...Object.values(counts)
+        );
+
+      if (max >= 3) {
+
+        const symbol =
+          Object.keys(counts)
+            .find(
+              key =>
+                counts[key] === max
+            );
+
+        let multiplier = 2;
+
+        if (max === 4) {
+          multiplier = 5;
+        }
+
+        if (max === 5) {
+          multiplier = 12;
+        }
+
+        const win =
+          bet * multiplier;
+
+        if (win > best) {
+
+          best = win;
+
+          winning =
+            cells.filter(cell =>
+              Number(cell.dataset.r) ===
+                rowIndex &&
+              cell.textContent === symbol
+            );
+        }
+      }
+
+    }
+  );
+
+  /*
+    JACKPOT
+  */
+
+  const jackpot =
+    Math.random() < 0.018;
+
+  if (jackpot) {
+
+    stopAuto();
+
+    sfx('jackpot');
+
+    best = bet * 30;
+
+    winning =
+      cells
+        .filter(
+          (_, i) => i % 4 === 0
+        )
+        .slice(0, 5);
+
+    modal(
+      '🐯 JACKPOT!',
+      `
+      <div class="jackpot">
+        JUNGLE JACKPOT!
+      </div>
+
+      <p>
+        Kamu memenangkan
+        <b>${fmt(best)} COIN</b>
+      </p>
+
+      <button id="claim">
+        🎁 CLAIM HADIAH
+      </button>
+
+      <p>
+        <small>
+          Hadiah berupa coin virtual dalam game.
+        </small>
+      </p>
+      `
+    );
+
+    setTimeout(() => {
+
+      const claim =
+        document.getElementById('claim');
+
+      if (claim) {
+
+        claim.onclick = () =>
+          claimJackpot(best);
+      }
+
+    }, 0);
+
+  }
+
+  /*
+    WIN NORMAL
+  */
+
+  else if (best > 0) {
+
+    lastWin = best;
+
+    balance += best;
+
+    winning.forEach(cell => {
+
+      cell.classList.add('win');
+
+    });
+
+    sfx('win');
+
+    setTimeout(() => {
+
+      winning.forEach(cell => {
+
+        cell.classList.remove('win');
+
+      });
+
+    }, 900);
+
+  }
+
+  /*
+    NO WIN
+  */
+
+  else if (!autoMode) {
+
+    modal(
+      '🍀 Belum Beruntung',
+      `
+      <p>
+        Coba putaran berikutnya
+        untuk mencari kombinasi baru!
+      </p>
+      `
+    );
+  }
+
+  save();
+
+  render();
+
+  spinning = false;
+
+  spinBtn.disabled = false;
+
+  /*
+    AUTO SPIN
+  */
+
+  if (autoMode) {
+
+    autoTimer =
+      setTimeout(() => {
+
+        if (
+          autoMode &&
+          !spinning
+        ) {
+          spin();
+        }
+
+      },
+      spinSpeed === 1
+        ? 1100
+        : 650
+      );
+  }
+}
+
+/* =========================
+   JACKPOT CLAIM
+========================= */
+
+async function claimJackpot(amount) {
+
+  closeModal();
+
+  if (
+    typeof window.showRewardedAd ===
+    'function'
+  ) {
+
+    try {
+
+      const rewarded =
+        await window.showRewardedAd();
+
+      if (rewarded === false) {
+
+        modal(
+          'Iklan Belum Selesai',
+          '<p>Hadiah diberikan setelah iklan selesai.</p>'
+        );
+
+        return;
+      }
+
+    } catch (e) {
+
+      modal(
+        'Iklan Belum Tersedia',
+        '<p>Coba lagi beberapa saat.</p>'
+      );
+
+      return;
+    }
+
+  } else {
+
+    /*
+      Simulasi WEB
+    */
+
+    showAdSimulation(
+      amount,
+      'JACKPOT'
+    );
+
+    return;
+  }
+
+  giveReward(amount);
+}
+
+/* =========================
+   AD SIMULATION WEB
+========================= */
+
+function showAdSimulation(
+  amount,
+  label
+) {
+
+  modal(
+    '📺 IKLAN HADIAH',
+    `
+    <p>
+      ${label}
+    </p>
+
+    <div class="count" id="count">
+      5
+    </div>
+
+    <p>
+      Menunggu hadiah...
+    </p>
+    `
+  );
+
+  let seconds = 5;
+
+  const timer =
+    setInterval(() => {
+
+      seconds--;
+
+      const count =
+        document.getElementById('count');
+
+      if (count) {
+        count.textContent = seconds;
+      }
+
+      if (seconds <= 0) {
+
+        clearInterval(timer);
+
+        closeModal();
+
+        giveReward(amount);
+      }
+
+    }, 1000);
+}
+
+/* =========================
+   GIVE REWARD
+========================= */
+
+function giveReward(amount) {
+
+  balance += amount;
+
+  lastWin = amount;
+
+  save();
+
+  render();
+
+  modal(
+    '🎉 HADIAH DIKLAIM',
+    `
+    <div class="jackpot">
+      +${fmt(amount)} COIN
+    </div>
+
+    <p>
+      Hadiah sudah masuk ke saldo game.
+    </p>
+    `
+  );
+
+  sfx('win');
+}
+
+/* =========================
+   OUT OF COINS
+========================= */
+
+function showOutOfCoins() {
+
+  stopAuto();
+
+  modal(
+    '🪙 COIN HABIS',
+    `
+    <p>
+      Coin kamu habis.
+    </p>
+
+    <button id="rewardCoins">
+      🎁 BONUS +25.000 COIN
+    </button>
+
+    <button id="cancelReward">
+      ⬅️ KEMBALI
+    </button>
+    `
+  );
+
+  setTimeout(() => {
+
+    const reward =
+      document.getElementById(
+        'rewardCoins'
+      );
+
+    const cancel =
+      document.getElementById(
+        'cancelReward'
+      );
+
+    if (cancel) {
+      cancel.onclick =
+        closeModal;
+    }
+
+    if (reward) {
+
+      reward.onclick = () => {
+
+        closeModal();
+
+        showRewarded(
+          25000,
+          'BONUS COIN'
+        );
+      };
+    }
+
+  }, 0);
+}
+
+function showRewarded(
+  amount,
+  label
+) {
+
+  if (
+    typeof window.showRewardedAd ===
+    'function'
+  ) {
+
+    Promise.resolve(
+      window.showRewardedAd()
+    )
+      .then(result => {
+
+        if (result !== false) {
+
+          giveReward(amount);
+
+        }
+
+      })
+      .catch(() => {
+
+        modal(
+          'Iklan Belum Tersedia',
+          '<p>Coba lagi nanti.</p>'
+        );
+
+      });
+
+    return;
+  }
+
+  showAdSimulation(
+    amount,
+    label
+  );
+}
+
+/* =========================
+   DAILY BONUS
+========================= */
+
+document.getElementById(
+  'bonus'
+).onclick = () => {
+
+  unlockSound();
+
+  const key =
+    'jcrBonusDay';
+
+  const today =
+    new Date().toDateString();
+
+  if (
+    localStorage.getItem(key) ===
+    today
+  ) {
+
+    modal(
+      '🎁 Bonus Harian',
+      '<p>Bonus hari ini sudah diambil. Kembali lagi besok!</p>'
+    );
+
+    return;
+  }
+
+  balance += 10000;
+
+  localStorage.setItem(
+    key,
+    today
+  );
+
+  save();
+
+  render();
+
+  modal(
+    '🎁 BONUS HARIAN',
+    `
+    <div class="jackpot">
+      +10.000 COIN
+    </div>
+
+    <p>
+      Bonus sudah masuk!
+    </p>
+
+    <button id="doubleBonus">
+      🎁 BONUS TAMBAHAN
+    </button>
+    `
+  );
+
+  setTimeout(() => {
+
+    const button =
+      document.getElementById(
+        'doubleBonus'
+      );
+
+    if (button) {
+
+      button.onclick = () => {
+
+        closeModal();
+
+        showRewarded(
+          10000,
+          'BONUS TAMBAHAN'
+        );
+      };
+    }
+
+  }, 0);
+};
+
+/* =========================
+   BET
+========================= */
+
+document.getElementById(
+  'minus'
+).onclick = () => {
+
+  unlockSound();
+
+  bet =
+    Math.max(
+      1000,
+      bet - 5000
+    );
+
+  sfx('click');
+
+  render();
+
+  save();
+};
+
+document.getElementById(
+  'plus'
+).onclick = () => {
+
+  unlockSound();
+
+  bet =
+    Math.min(
+      50000,
+      bet + 5000
+    );
+
+  sfx('click');
+
+  render();
+
+  save();
+};
+
+/* =========================
+   SPEED
+========================= */
+
+document.getElementById(
+  'speed'
+).onclick = () => {
+
+  unlockSound();
+
+  if (spinning) return;
+
+  spinSpeed =
+    spinSpeed === 1
+      ? 2
+      : 1;
+
+  sfx('click');
+
+  render();
+
+  save();
+};
+
+/* =========================
+   AUTO
+========================= */
+
+function stopAuto() {
+
+  autoMode = false;
+
+  if (autoTimer) {
+
+    clearTimeout(autoTimer);
+
+    autoTimer = null;
+  }
+
+  const button =
+    document.getElementById('auto');
+
+  if (button) {
+
+    button.innerHTML =
+      '▶ AUTO<br>OFF';
+
+    button.classList.remove(
+      'activeAuto'
+    );
+  }
+}
+
+document.getElementById(
+  'auto'
+).onclick = () => {
+
+  unlockSound();
+
+  autoMode = !autoMode;
+
+  const button =
+    document.getElementById('auto');
+
+  button.innerHTML =
+    autoMode
+      ? '⏹ AUTO<br>ON'
+      : '▶ AUTO<br>OFF';
+
+  button.classList.toggle(
+    'activeAuto',
+    autoMode
+  );
+
+  sfx('click');
+
+  if (
+    autoMode &&
+    !spinning
+  ) {
+    spin();
+  }
+};
+
+/* =========================
+   SPIN BUTTON
+========================= */
+
+spinBtn.onclick = () => {
+
+  unlockSound();
+
+  sfx('click');
+
+  spin();
+};
+
+/* =========================
+   HOW TO PLAY
+========================= */
+
+document.getElementById(
+  'how'
+).onclick = () => {
+
+  modal(
+    '❓ CARA MAIN',
+    `
+    <p>
+      Tekan SPIN untuk memutar
+      5 reel.
+    </p>
+
+    <p>
+      Dapatkan minimal 3 simbol
+      yang sama dalam satu baris.
+    </p>
+
+    <p>
+      Semakin banyak simbol sama,
+      semakin besar hadiah.
+    </p>
+    `
+  );
+};
+
+/* =========================
+   SOUND BUTTON
+========================= */
+
+document.getElementById(
+  'sound'
+).onclick = () => {
+
+  unlockSound();
+
+  sfxOn = !sfxOn;
+
+  if (sfxOn) {
+
+    sfx('click');
+
+  }
+
+  render();
+
+  save();
+};
+
+/* =========================
+   SETTINGS
+========================= */
+
+document.getElementById(
+  'settings'
+).onclick = () => {
+
+  modal(
+    '⚙️ PENGATURAN',
+    `
+    <p>Atur suara game.</p>
+
+    <button id="musicToggle">
+      🎵 Musik:
+      ${musicOn ? 'ON' : 'OFF'}
+    </button>
+
+    <button id="sfxToggle">
+      🔊 Efek:
+      ${sfxOn ? 'ON' : 'OFF'}
+    </button>
+
+    <p>Volume</p>
+
+    <input
+      id="volumeSlider"
+      type="range"
+      min="0"
+      max="100"
+      value="${Math.round(masterVolume * 100)}"
+      style="width:100%"
+    >
+
+    <p id="volumeValue">
+      ${Math.round(masterVolume * 100)}%
+    </p>
+    `
+  );
+
+  setTimeout(() => {
+
+    const musicToggle =
+      document.getElementById(
+        'musicToggle'
+      );
+
+    const sfxToggle =
+      document.getElementById(
+        'sfxToggle'
+      );
+
+    const slider =
+      document.getElementById(
+        'volumeSlider'
+      );
+
+    const value =
+      document.getElementById(
+        'volumeValue'
+      );
+
+    if (musicToggle) {
+
+      musicToggle.onclick = () => {
+
+        musicOn = !musicOn;
+
+        if (musicOn) {
+
+          unlockSound();
+
+          startMusic();
+
+        } else {
+
+          stopMusic();
+        }
+
+        musicToggle.innerHTML =
+          `🎵 Musik: ${
+            musicOn ? 'ON' : 'OFF'
+          }`;
+
+        save();
+      };
+    }
+
+    if (sfxToggle) {
+
+      sfxToggle.onclick = () => {
+
+        sfxOn = !sfxOn;
+
+        sfxToggle.innerHTML =
+          `🔊 Efek: ${
+            sfxOn ? 'ON' : 'OFF'
+          }`;
+
+        save();
+      };
+    }
+
+    if (slider) {
+
+      slider.oninput = () => {
+
+        masterVolume =
+          Number(slider.value) / 100;
+
+        value.textContent =
+          `${slider.value}%`;
+
+        save();
+      };
+    }
+
+  }, 0);
+};
+
+/* =========================
+   INITIALIZE
+========================= */
+
+load();
+
+makeGrid();
+
+render();
+
+/*
+  Pastikan board selalu ada
+*/
+
+if (
+  !reels.children.length
+) {
+  makeGrid();
+}
+
+/*
+  Browser membutuhkan sentuhan pertama
+  untuk mengaktifkan audio.
+*/
+
+document.addEventListener(
+  'pointerdown',
+  unlockSound,
+  { once: true }
+);
