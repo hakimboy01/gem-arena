@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#102846">
+<meta name="description" content="Jungle Coin Rush — Spin, Win, Collect.">
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+
 <title>Jungle Coin Rush</title>
 <link rel="stylesheet" href="style.css?v=board-fix-20260907">
 </head>
@@ -35,6 +41,38 @@
 
     <section class="controls">
       <div class="betbox">
+        <small>TARUHAN</small>
+        <div><button id="minus">−</button><b id="bet">10,000</b><button id="plus">+</button></div>
+      </div>
+      <button id="spin" class="spin">SPIN</button>
+      <button id="speed" class="max">⚡ 1×<br>CEPAT</button><button id="auto" class="max">▶ AUTO<br>OFF</button>
+    </section>
+
+    <section class="info">
+      <button id="how">❓ Cara Main</button>
+      <button id="bonus">🎁 Bonus Harian</button>
+      <button id="sound">🔊 Suara</button>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="hidden"><div class="modalCard">
+  <button id="close">×</button>
+  <h2 id="modalTitle"></h2>
+  <div id="modalBody"></div>
+</div></div>
+
+<script src="game.js?v=board-fix-20260907"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(() => console.log("PWA aktif"))
+      .catch(error => console.log("PWA error:", error));
+  });
+}
+</script>
+</body></html>      <div class="betbox">
         <small>TARUHAN</small>
         <div><button id="minus">−</button><b id="bet">10,000</b><button id="plus">+</button></div>
       </div>
