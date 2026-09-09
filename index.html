@@ -9,7 +9,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <title>Jungle Rush</title>
-<link rel="stylesheet" href="style.css?v=tiger-real-v2">
+<link rel="stylesheet" href="style.css?v=bet-music-speed-v3">
 </head>
 <body>
 <div id="app">
@@ -54,9 +54,11 @@
         <div id="reels" class="reels" aria-label="Mesin permainan"></div>
       </section>
 
+      <section class="mobileBetCard" aria-label="Atur taruhan"><small>🎰 TARUHAN</small><div><button id="minusMobile">−</button><b id="betMobile">10.000</b><button id="plusMobile">＋</button></div><span>MIN 1.000 · MAX 100.000</span></section>
+
       <section class="bottomControls">
         <button id="how" class="control infoBtn">ⓘ<span>INFO</span></button>
-        <button id="speed" class="control turboBtn">⚡<span>TURBO</span></button>
+        <button id="speed" class="control turboBtn">▶<span>NORMAL</span></button>
         <button id="superBtn" class="control superBtn">2×<span>SUPER</span></button>
         <button id="spin" class="spin">SPIN<small>HOLD FOR AUTO</small></button>
         <button id="auto" class="control autoBtn">AUTO<span>OFF</span></button>
@@ -79,7 +81,7 @@
 <div id="modal" class="hidden"><div class="modalCard"><button id="close">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div>
 
 <script src="demo-ads.js?v=20260909d"></script>
-<script src="game.js?v=tiger-real-v2"></script>
+<script src="game.js?v=bet-music-speed-v3"></script>
 <script src="purchase.js?v=20260909d"></script>
 <script src="super-spin.js?v=20260909f"></script>
 <script>
@@ -87,6 +89,6 @@ document.getElementById('buySuperSide').onclick=()=>document.getElementById('buy
 document.getElementById('bonusBottom').onclick=()=>document.getElementById('bonus').click();
 document.getElementById('coinMenu').onclick=()=>document.getElementById('addCoins').click();
 document.getElementById('superBtn').onclick=()=>document.getElementById('speed').click();
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=tiger-real-v2').catch(()=>{}))}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=bet-music-speed-v3').catch(()=>{}))}
 </script>
 </body></html>
