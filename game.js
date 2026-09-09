@@ -3,6 +3,7 @@ const scatter='🐯';
 const reels=document.getElementById('reels');
 const spinBtn=document.getElementById('spin');
 const MIN_BET=1000,MAX_BET=100000,BET_STEP=5000;
+const COIN_AD_REWARD=25000;
 let balance=250000,bet=10000,spinning=false,lastWin=0;
 let spinSpeed=1,autoMode=false,autoTimer=null;
 let musicOn=true,sfxOn=true,masterVolume=.55,audioCtx=null,musicTimer=null;
@@ -36,8 +37,10 @@ function finish(isFree){const cells=[...document.querySelectorAll('.symbol')];co
 async function claimJackpot(amount){closeModal();try{const ok=await window.showRewardedAd();if(ok===false){modal('Iklan Belum Selesai','<p>Hadiah diberikan setelah iklan selesai.</p>');return}giveReward(amount)}catch(e){showAdSimulation(amount,'JACKPOT')}}
 function showAdSimulation(amount,label){modal('📺 IKLAN HADIAH',`<p>${label}</p><div class="count" id="count">5</div><p>Menunggu hadiah...</p>`);let s=5;const t=setInterval(()=>{s--;const c=document.getElementById('count');if(c)c.textContent=s;if(s<=0){clearInterval(t);closeModal();giveReward(amount)}},1000)}
 function giveReward(amount){balance+=amount;lastWin=amount;save();render();modal('🎉 HADIAH DIKLAIM',`<div class="jackpot">+${fmt(amount)} COIN</div><p>Hadiah sudah masuk ke saldo game.</p>`);sfx('win')}
-function showOutOfCoins(){stopAuto();modal('🪙 COIN HABIS','<p>Coin kamu habis.</p><button id="rewardCoins">🎁 BONUS +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=closeModal;document.getElementById('rewardCoins').onclick=()=>{closeModal();showRewarded(25000,'BONUS COIN')}},0)}
 function showRewarded(amount,label){if(typeof window.showRewardedAd==='function'){Promise.resolve(window.showRewardedAd()).then(r=>{if(r!==false)giveReward(amount)}).catch(()=>modal('Iklan Belum Tersedia','<p>Coba lagi nanti.</p>'));return}showAdSimulation(amount,label)}
+function showOutOfCoins(){stopAuto();modal('🪙 COIN HABIS','<p>Coin kamu habis.</p><button id="rewardCoins">🎁 BONUS +25.000 COIN</button><button id="cancelReward">⬅️ KEMBALI</button>');setTimeout(()=>{document.getElementById('cancelReward').onclick=closeModal;document.getElementById('rewardCoins').onclick=()=>{closeModal();showRewarded(COIN_AD_REWARD,'BONUS COIN')}},0)}
+function openCoinReward(){unlockSound();modal('🪙 TAMBAH COIN',`<div class="jackpot">+${fmt(COIN_AD_REWARD)} COIN</div><p>Tonton iklan berhadiah sampai selesai untuk mendapatkan bonus coin.</p><button id="watchCoinAd">📺 TONTON IKLAN & DAPAT COIN</button><p style="font-size:11px;color:#9db0c9">Iklan hanya memberi bonus setelah selesai.</p>`);setTimeout(()=>{const b=document.getElementById('watchCoinAd');if(b)b.onclick=()=>{closeModal();showRewarded(COIN_AD_REWARD,'TAMBAH COIN')}},0)}
+document.getElementById('addCoins').onclick=openCoinReward;
 document.getElementById('bonus').onclick=()=>{unlockSound();const key='jcrBonusDay',today=new Date().toDateString();if(localStorage.getItem(key)===today){modal('🎁 Bonus Harian','<p>Bonus hari ini sudah diambil. Kembali lagi besok!</p>');return}balance+=10000;localStorage.setItem(key,today);save();render();modal('🎁 BONUS HARIAN',`<div class="jackpot">+10.000 COIN</div><p>Bonus sudah masuk!</p><button id="doubleBonus">🎁 BONUS TAMBAHAN</button>`);setTimeout(()=>{const b=document.getElementById('doubleBonus');if(b)b.onclick=()=>{closeModal();showRewarded(10000,'BONUS TAMBAHAN')}},0)};
 document.getElementById('minus').onclick=()=>{unlockSound();bet=Math.max(MIN_BET,bet-BET_STEP);sfx('click');render();save()};document.getElementById('plus').onclick=()=>{unlockSound();bet=Math.min(MAX_BET,bet+BET_STEP);sfx('click');render();save()};document.getElementById('speed').onclick=()=>{unlockSound();if(spinning)return;spinSpeed=spinSpeed===1?2:1;sfx('click');render();save()};
 function stopAuto(){autoMode=false;if(autoTimer){clearTimeout(autoTimer);autoTimer=null}const b=document.getElementById('auto');if(b){b.innerHTML='▶ AUTO<br>OFF';b.classList.remove('activeAuto')}}
