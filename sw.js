@@ -1,5 +1,5 @@
-const CACHE_NAME='jungle-coin-rush-v8';
-const ASSETS=['./','./index.html','./style.css?v=20260909f','./game.js?v=20260909f','./purchase.js?v=20260909d','./demo-ads.js?v=20260909d','./super-spin.js?v=20260909f','./manifest.json','./icon.svg'];
+const CACHE_NAME='jungle-rush-cinematic-v1';
+const ASSETS=['./','./index.html','./style.css?v=20260909-cinematic1','./game.js?v=20260909-cinematic1','./purchase.js?v=20260909d','./demo-ads.js?v=20260909d','./super-spin.js?v=20260909f','./manifest.json','./icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE_NAME).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request).then(x=>x||caches.match('./index.html'))))});
