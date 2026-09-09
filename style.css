@@ -26,3 +26,39 @@ radial-gradient(circle at 50% 30%,#204d35,#0a1d13 62%,#020705)!important;transit
 .spin{position:relative;overflow:hidden;animation:spinPulse 1.5s ease-in-out infinite alternate}.spin:before{content:"";position:absolute;inset:-60% -25%;background:linear-gradient(110deg,transparent 43%,#fff9c7aa 49%,transparent 55%);animation:spinShine 2.8s linear infinite}@keyframes spinPulse{to{box-shadow:inset 0 -9px #08760d,0 0 18px #71ff32,0 0 45px #37ff2066;transform:translateY(-2px)}}@keyframes spinShine{to{transform:translateX(190%) rotate(8deg)}}
 .scatterPanel{position:relative;overflow:hidden}.scatterPanel:before{content:"";position:absolute;inset:-30%;background:radial-gradient(circle,#9d27ff33,transparent 55%);animation:scatterAura 3s ease-in-out infinite alternate;pointer-events:none}@keyframes scatterAura{to{transform:scale(1.3);opacity:.8}}.diamond{animation:diamondFloat 2.4s ease-in-out infinite alternate;filter:drop-shadow(0 0 12px #48c7ff) drop-shadow(0 0 28px #397dff)!important}@keyframes diamondFloat{to{transform:translateY(-9px) scale(1.05)}}
 @media(max-width:640px){.ambientParticles i:nth-child(n+7){display:none}.heroRays{opacity:.45}.tigerAura{width:160px;height:110px}.machineShell:before{box-shadow:inset 0 0 18px #ff9f001f}}
+
+/* ===== TIGER REAL LIFE V2 — FULL VISUAL REPLACEMENT ===== */
+.playerInfo{min-width:0}.tigerTap{cursor:pointer}
+.heroJackpots{display:none}.machineLights{position:absolute;inset:0;pointer-events:none;border:2px solid #ffe27a99;box-shadow:inset 0 0 28px #ff9f0030;z-index:4}
+.tigerHead{width:230px;height:230px;border:0;background:radial-gradient(circle,#ffbe3120,transparent 66%);border-radius:50%;display:grid;place-items:center;filter:drop-shadow(0 0 10px #ffb000) drop-shadow(0 18px 15px #000)!important;animation:tigerBreath 2.8s ease-in-out infinite alternate}
+.tigerHead:before{content:"";position:absolute;width:72%;height:20%;bottom:19%;border-radius:50%;background:radial-gradient(ellipse,#ffce5d66,transparent 70%);filter:blur(10px);z-index:-1}
+.tigerHead:hover{filter:drop-shadow(0 0 24px #ffcf4b) drop-shadow(0 18px 15px #000)!important}
+.scatterTiger{position:relative;font-size:115px;filter:drop-shadow(0 0 16px #b33cff);animation:scatterTiger 1.3s ease-in-out infinite alternate}
+@keyframes scatterTiger{to{transform:scale(1.08) rotate(-2deg);filter:drop-shadow(0 0 28px #ff7c00)}}
+.mobileStatus{display:none}
+@media(max-width:1050px){
+  .jungleHero{height:220px!important}
+  .mobileStatus{display:flex;position:relative;z-index:2;max-width:900px;margin:0 auto 8px;padding:0 8px;gap:7px}
+  .mobileStatus div{flex:1;border:1px solid #8f6920;border-radius:10px;background:#06120d;padding:8px;text-align:center;font-size:11px}
+  .mobileStatus b{display:block;color:#c7ff63;font-size:18px}
+}
+@media(max-width:640px){
+  .topbar{min-height:70px!important;padding:7px!important}
+  .playerCard{padding:4px 7px!important;min-width:0!important;border-radius:14px!important;gap:6px!important}
+  .avatar{width:47px!important;height:47px!important;font-size:35px!important}
+  .playerInfo small{font-size:9px!important}.coinLine{font-size:15px!important;gap:4px!important}
+  .coinLine button{width:32px!important;height:32px!important;font-size:24px!important;margin-left:2px!important}
+  .topActions{gap:4px!important}.squareBtn{width:46px!important;height:46px!important;border-radius:12px!important;font-size:21px!important}.squareBtn small{display:none!important}
+  .gameLayout{padding:5px!important}.jungleHero{height:180px!important;border-radius:18px 18px 0 0!important}
+  .logo{left:11px!important;top:37px!important}.logo strong{font-size:38px!important}.logo span{font-size:42px!important}
+  .tigerHead{width:160px!important;height:160px!important;font-size:132px!important;bottom:-20px!important}
+  .tigerAura{width:165px!important;height:100px!important}.jackpotBox{right:7px!important;top:8px!important;width:145px!important;padding:4px!important}
+  .jackpotBox small{font-size:9px!important}.jackpotBox b{font-size:19px!important}
+  .machineShell{padding:4px!important;border-width:4px!important}.reels{gap:3px!important;padding:3px!important}.reel{gap:3px!important}
+  .symbol{min-height:76px!important;font-size:43px!important;border-radius:5px!important}
+  .freeSpinBar.active{height:32px!important;line-height:32px!important;font-size:11px!important}
+  .bottomControls{grid-template-columns:1fr 1fr 1.1fr 1.7fr 1fr!important;gap:5px!important;padding:7px 4px!important}
+  .dailyBtn{display:none!important}.control{min-height:58px!important;border-radius:12px!important;font-size:15px!important}.control span{font-size:10px!important}
+  .superBtn{font-size:25px!important}.spin{min-height:66px!important;font-size:31px!important}.spin small{font-size:8px!important}.autoBtn{font-size:16px!important}
+}
+@media(max-width:390px){.coinLine b{font-size:13px}.squareBtn{width:42px!important}.logo strong{font-size:34px!important}.logo span{font-size:38px!important}.tigerHead{font-size:120px!important}.symbol{min-height:69px!important;font-size:39px!important}.control{min-height:53px!important}.spin{font-size:28px!important}}
