@@ -62,3 +62,24 @@ radial-gradient(circle at 50% 30%,#204d35,#0a1d13 62%,#020705)!important;transit
   .superBtn{font-size:25px!important}.spin{min-height:66px!important;font-size:31px!important}.spin small{font-size:8px!important}.autoBtn{font-size:16px!important}
 }
 @media(max-width:390px){.coinLine b{font-size:13px}.squareBtn{width:42px!important}.logo strong{font-size:34px!important}.logo span{font-size:38px!important}.tigerHead{font-size:120px!important}.symbol{min-height:69px!important;font-size:39px!important}.control{min-height:53px!important}.spin{font-size:28px!important}}
+
+/* ===== BET + MUSIC + 4 SPEED MODES ===== */
+.mobileBetCard{display:none}
+.selectedSpeed{outline:3px solid #fff09b!important;box-shadow:0 0 20px #ffb300, inset 0 0 18px #7a2cff!important}
+@media(max-width:1050px){
+  .leftPanel,.rightPanel{display:none!important}
+  .mobileBetCard{display:block;margin:8px 3px 4px;padding:9px 12px;border:2px solid #a77a28;border-radius:16px;background:linear-gradient(145deg,#102a1d,#07130e);box-shadow:0 0 18px #b8862422;text-align:center}
+  .mobileBetCard small{display:block;color:#f6d77c;font-size:11px;letter-spacing:1px}
+  .mobileBetCard>div{display:flex;align-items:center;justify-content:center;gap:16px;margin:5px 0}
+  .mobileBetCard button{width:48px;height:42px;border-radius:12px;border:2px solid #b78731;background:linear-gradient(#394c43,#17251e);color:#fff;font-size:28px;font-weight:900}
+  .mobileBetCard b{min-width:112px;font-size:25px;color:#fff3c5;letter-spacing:1px}
+  .mobileBetCard>span{font-size:10px;color:#b9c8b7}
+}
+@media(max-width:640px){
+  .mobileBetCard{margin:7px 3px 4px;padding:7px 10px}
+  .mobileBetCard>div{gap:12px;margin:4px 0}
+  .mobileBetCard button{width:43px;height:39px;font-size:25px}
+  .mobileBetCard b{font-size:22px;min-width:102px}
+  .bottomControls{grid-template-columns:1fr 1.12fr 1.1fr 1.7fr 1.15fr!important}
+  .turboBtn span{font-size:9px!important}.turboBtn{font-size:22px!important}
+}
