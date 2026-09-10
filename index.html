@@ -1,93 +1,51 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#07170f">
-<meta name="description" content="Jungle Rush — Tiger Scatter Spin Game.">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
-<title>Jungle Rush</title>
-<link rel="stylesheet" href="style.css?v=bet-music-speed-v3">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tiger Reel Demo</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app">
-  <div class="ambientParticles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <main class="app">
+    <header>
+      <button id="settings">⚙</button>
+      <div class="title">🐯 <span>TIGER</span> REEL</div>
+      <div>CREDITS<br><b id="credits">5,000</b></div>
+    </header>
 
-  <header class="topbar">
-    <div class="playerCard">
-      <button class="avatar tigerTap" aria-label="Suara Tiger">🐯</button>
-      <div class="playerInfo"><small>PLAYER</small><div class="coinLine">🪙 <b id="coins">250.000</b><button id="addCoins" aria-label="Tambah koin">＋</button></div></div>
-    </div>
-    <div class="topActions">
-      <button class="squareBtn" id="coinMenu">🪙<small>KOIN</small></button>
-      <button class="squareBtn" id="buySuper">🚀<small>SUPER SPIN</small></button>
-      <button class="squareBtn" id="sound">🎵<small>MUSIK</small></button>
-      <button class="squareBtn" id="settings">☰<small>MENU</small></button>
-    </div>
-  </header>
-
-  <main class="gameLayout">
-    <aside class="leftPanel panelStack">
-      <div class="modeCard slow">🎵<div><b>MODE BIASA</b><span>MUSIK SLOW</span></div></div>
-      <div class="betCard"><small>TARUHAN</small><div><button id="minus">−</button><b id="bet">10.000</b><button id="plus">＋</button></div><small>MIN 1.000 · MAX 100.000</small></div>
-      <div class="totalCard"><small>🏆 TOTAL WIN</small><b id="win">0</b></div>
-      <button id="buyFree" class="sideBuy tigerBuy">🐯 <span>BELI FREE SPIN<small>50.000 COIN</small></span></button>
-      <button id="buySuperSide" class="sideBuy superBuy">🚀 <span>SUPER SPIN<small>50.000 COIN</small></span></button>
-      <button id="bonus" class="sideBuy bonusBuy">🪙 <span>TAMBAH KOIN</span></button>
+    <aside id="panel">
+      <b>SETTINGS</b>
+      <label>🔊 Sound <input id="sound" type="checkbox" checked></label>
+      <label>🔉 Volume <input id="volume" type="range" value="70"></label>
+      <button id="free">🎰 FREE SPIN BONUS</button>
+      <button id="ad">📺 WATCH DEMO AD <span id="ads">0</span>/5</button>
     </aside>
 
-    <section class="centerStage">
-      <section class="jungleHero">
-        <div class="heroRays"></div><div class="heroMist"></div>
-        <div class="logo"><strong>JUNGLE</strong><span>RUSH</span></div>
-        <button class="tigerHead tigerTap" aria-label="Tiger hidup">🐯</button>
-        <div class="tigerAura"></div>
-        <div class="jackpotBox"><small>👑 JACKPOT</small><b id="grand">125.000.000</b></div>
-        <div class="heroJackpots"><div><small>GRAND</small><b>2.500.000</b></div><div><small>MAJOR</small><b>250.000</b></div><div><small>MINOR</small><b>50.000</b></div></div>
-      </section>
-
-      <section class="machineShell">
-        <div class="machineLights"></div><div class="reelGlow"></div>
-        <div id="freeSpinBar" class="freeSpinBar"></div>
-        <div id="reels" class="reels" aria-label="Mesin permainan"></div>
-      </section>
-
-      <section class="mobileBetCard" aria-label="Atur taruhan"><small>🎰 TARUHAN</small><div><button id="minusMobile">−</button><b id="betMobile">10.000</b><button id="plusMobile">＋</button></div><span>MIN 1.000 · MAX 100.000</span></section>
-
-      <section class="bottomControls">
-        <button id="how" class="control infoBtn">ⓘ<span>INFO</span></button>
-        <button id="speed" class="control turboBtn">▶<span>NORMAL</span></button>
-        <button id="superBtn" class="control superBtn">2×<span>SUPER</span></button>
-        <button id="spin" class="spin">SPIN<small>HOLD FOR AUTO</small></button>
-        <button id="auto" class="control autoBtn">AUTO<span>OFF</span></button>
-        <button class="control dailyBtn" id="bonusBottom">🎁<span>BONUS HARIAN</span></button>
-      </section>
+    <section class="machine">
+      <h1>✦ TIGER REEL ✦</h1>
+      <div id="reels" class="reels"></div>
+      <div class="win">WIN <strong id="win">0</strong></div>
     </section>
 
-    <aside class="rightPanel panelStack">
-      <div class="modeCard fast">🎵<div><b>MODE SCATTER</b><span>MUSIK ENERJIK</span></div></div>
-      <div class="scatterPanel"><h3>3+ SCATTER</h3><div class="scatterTiger tigerTap">🐯</div><h4>MODE SCATTER</h4><p>TRIGGER</p><b>5 FREE SPIN</b><div class="tinyTigers">🐯 🐯 🐯</div></div>
-    </aside>
+    <p id="message">READY • TEKAN SPIN</p>
+
+    <section class="controls">
+      <button id="minus">−</button>
+      <div>BET<br><b id="bet">50</b></div>
+      <button id="plus">+</button>
+      <button id="spin">SPIN</button>
+    </section>
+
+    <section class="speed">
+      <button data-speed="slow" class="active">SLOW</button>
+      <button data-speed="normal">NORMAL</button>
+      <button data-speed="fast">FAST</button>
+      <button data-speed="2x">2X</button>
+    </section>
+
+    <footer>Free-to-play demo • Virtual credits only • No real-money wagering</footer>
   </main>
-
-  <section class="mobileStatus">
-    <div>🏆 TOTAL WIN <b id="winMobile">0</b></div>
-    <div>3+ 🐯 <b>5 FREE SPIN</b></div>
-  </section>
-</div>
-
-<div id="modal" class="hidden"><div class="modalCard"><button id="close">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div>
-
-<script src="demo-ads.js?v=20260909d"></script>
-<script src="game.js?v=bet-music-speed-v3"></script>
-<script src="purchase.js?v=20260909d"></script>
-<script src="super-spin.js?v=20260909f"></script>
-<script>
-document.getElementById('buySuperSide').onclick=()=>document.getElementById('buySuper').click();
-document.getElementById('bonusBottom').onclick=()=>document.getElementById('bonus').click();
-document.getElementById('coinMenu').onclick=()=>document.getElementById('addCoins').click();
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=bet-music-speed-v3').catch(()=>{}))}
-</script>
-</body></html>
+  <script src="game.js"></script>
+</body>
+</html>
